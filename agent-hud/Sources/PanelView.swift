@@ -65,7 +65,7 @@ struct PanelView: View {
 
     /// Width of the folded side tab; the controller sizes the window to match.
     static let collapsedWidth: CGFloat = 34
-    static let collapsedHeight: CGFloat = 124
+    static let collapsedHeight: CGFloat = 150
 
     private var isCollapsedTab: Bool { store.layoutMode == .vertical && store.collapsed }
 
@@ -186,12 +186,14 @@ struct PanelView: View {
         let color: Color
     }
 
-    /// Order: waiting for you, running, finished.
+    /// Order: waiting for you, running, finished, idle. The idle disc uses a
+    /// solid white rather than the translucent row dot so its number stays legible.
     private func collapsedBadges(_ counts: Counts) -> [CountBadge] {
         [
             CountBadge(label: "blocked", value: counts.blocked, color: HUDTheme.blocked),
             CountBadge(label: "working", value: counts.working, color: HUDTheme.working),
             CountBadge(label: "done", value: counts.done, color: HUDTheme.done),
+            CountBadge(label: "idle", value: counts.idle, color: Color.white.opacity(0.82)),
         ].filter { $0.value > 0 }
     }
 
@@ -207,7 +209,7 @@ struct PanelView: View {
     private var collapsedHelp: String {
         guard let board else { return "展开 Agent HUD" }
         let c = board.counts
-        return "展开 Agent HUD · \(c.blocked) 等待确认 / \(c.working) 运行中 / \(c.done) 已完成 / \(c.total) 个"
+        return "展开 Agent HUD · \(c.blocked) 等待确认 / \(c.working) 运行中 / \(c.done) 已完成 / \(c.idle) 空闲 / \(c.total) 个"
     }
 
     @ViewBuilder
