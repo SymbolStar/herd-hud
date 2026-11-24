@@ -346,9 +346,11 @@ try {
 
   // ── 3. routes
   resetCaches();
-  configureMachines({ labels: [] });
   const { ctx, routes, state } = makeCtx();
-  apply(ctx);
+  // apply() resets the plugin config, so pass the empty machine set through it;
+  // otherwise the default machine leaks in and a real `herdr` CLI gets called.
+  apply(ctx, { machines: [] });
+  configureMachines({ labels: [] });
   assert.ok(routes.has(ROUTE_AGENTS));
   assert.ok(routes.has(ROUTE_PROMPT));
   assert.ok(routes.has(ROUTE_KEYS));
