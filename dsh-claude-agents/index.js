@@ -675,6 +675,7 @@ export function mergeBoard({ claude, herdr, machines, now }) {
   counts.claude = agents.filter((agent) => agent.type === 'claude').length;
   counts.opencode = agents.filter((agent) => agent.type === 'opencode').length;
   counts.codex = agents.filter((agent) => agent.type === 'codex').length;
+  counts.pi = agents.filter((agent) => agent.type === 'pi').length;
   counts.remote = agents.filter((agent) => Boolean(agent.machine)).length;
 
   return {
@@ -723,7 +724,7 @@ function compareAgents(left, right) {
   if (delta !== 0) return delta;
   const machineDelta = (left.machine ? 1 : 0) - (right.machine ? 1 : 0);
   if (machineDelta !== 0) return machineDelta;
-  const typeOrder = { claude: 0, opencode: 1, codex: 2 };
+  const typeOrder = { claude: 0, opencode: 1, codex: 2, pi: 3 };
   const typeDelta = (typeOrder[left.type] ?? 9) - (typeOrder[right.type] ?? 9);
   if (typeDelta !== 0) return typeDelta;
   return String(left.name).localeCompare(String(right.name));

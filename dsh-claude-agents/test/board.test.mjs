@@ -327,6 +327,7 @@ try {
     claude: 2,
     opencode: 1,
     codex: 1,
+    pi: 0,
     remote: 0,
   });
   const [first, second] = merged.agents;

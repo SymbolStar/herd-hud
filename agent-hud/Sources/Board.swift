@@ -141,7 +141,7 @@ enum BoardBuilder {
         if left.activitySeq != right.activitySeq { return left.activitySeq > right.activitySeq }
         if left.statusRank != right.statusRank { return left.statusRank < right.statusRank }
         if (left.machine == nil) != (right.machine == nil) { return left.machine == nil }
-        let kinds = ["claude": 0, "opencode": 1, "codex": 2]
+        let kinds = ["claude": 0, "opencode": 1, "codex": 2, "pi": 3]
         let leftKind = kinds[left.kind] ?? 9
         let rightKind = kinds[right.kind] ?? 9
         if leftKind != rightKind { return leftKind < rightKind }
@@ -200,7 +200,8 @@ private final class RowBuilder {
             return ""
         }
         let lower = text.lowercased()
-        for prefix in ["opencode", "codex", "claude", "oc"] where lower.hasPrefix(prefix) {
+        // pi titles look like "π - <session> - <dir>"; drop the glyph like the other agent prefixes.
+        for prefix in ["opencode", "codex", "claude", "oc", "π"] where lower.hasPrefix(prefix) {
             let rest = text.dropFirst(prefix.count)
             let stripped = rest.drop { character in
                 character == " " || character == "|" || character == ":" || character == "-" || character == ">"

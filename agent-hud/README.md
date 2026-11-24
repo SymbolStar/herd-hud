@@ -32,7 +32,7 @@ remote — as a status-bar companion.
 - **Data**: local Herdr unix socket (`session.snapshot`) every 2 s; remote
   machines through the local Herdr CLI `--machine <label> api snapshot` (15 s
   cache, retries after 8 s on failure). No SSH credentials are read or stored.
-- **Agents**: Claude, OpenCode, Codex. Filters: the panel shows active agents
+- **Agents**: Claude, OpenCode, Codex, pi. Filters: the panel shows active agents
   (working/blocked) by default; the footer toggle reveals idle ones.
 
 ## Build
