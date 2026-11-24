@@ -149,20 +149,8 @@ struct PanelView: View {
                 .font(.system(size: 9, weight: .bold))
                 .foregroundStyle(Color.white.opacity(0.45))
             if let board {
-                let badges = collapsedBadges(board.counts)
-                if badges.isEmpty {
-                    Circle()
-                        .stroke(Color.white.opacity(0.25), lineWidth: 1)
-                        .frame(width: 22, height: 22)
-                        .overlay(
-                            Text(String(board.counts.total))
-                                .font(.system(size: 10, weight: .semibold).monospacedDigit())
-                                .foregroundStyle(Color.white.opacity(0.4))
-                        )
-                } else {
-                    ForEach(badges, id: \.label) { badge in
-                        countDisc(badge.value, color: badge.color)
-                    }
+                ForEach(collapsedBadges(board.counts), id: \.label) { badge in
+                    countDisc(badge.value, color: badge.color)
                 }
                 if !board.herdrAvailable {
                     Image(systemName: "exclamationmark.triangle.fill")
@@ -186,15 +174,17 @@ struct PanelView: View {
         let color: Color
     }
 
-    /// Order: waiting for you, running, finished, idle. The idle disc uses a
-    /// solid white rather than the translucent row dot so its number stays legible.
+    /// Order: waiting for you, running, finished, idle. The running disc is
+    /// always shown (0 included) so the tab never reads as empty; the others
+    /// appear only when their count is non-zero. The idle disc uses a solid
+    /// white rather than the translucent row dot so its number stays legible.
     private func collapsedBadges(_ counts: Counts) -> [CountBadge] {
         [
             CountBadge(label: "blocked", value: counts.blocked, color: HUDTheme.blocked),
             CountBadge(label: "working", value: counts.working, color: HUDTheme.working),
             CountBadge(label: "done", value: counts.done, color: HUDTheme.done),
             CountBadge(label: "idle", value: counts.idle, color: Color.white.opacity(0.82)),
-        ].filter { $0.value > 0 }
+        ].filter { $0.value > 0 || $0.label == "working" }
     }
 
     private func countDisc(_ value: Int, color: Color) -> some View {
