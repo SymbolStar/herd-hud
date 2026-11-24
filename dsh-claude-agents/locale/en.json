@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Agent board",
+    "description": "Every local Herdr-managed agent (Claude / OpenCode / Codex) with live status, terminal output, and manual message sending; Claude processes outside Herdr are read-only."
+  }
+}

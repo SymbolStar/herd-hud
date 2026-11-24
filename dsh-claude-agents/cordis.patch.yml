@@ -1,0 +1,6 @@
+# Bundle patch for @local/dsh-claude-agents: one host row serves the read-only
+# agents snapshot, and the package's dsh.client roster serves the sidebar page.
+- insert:
+    - id: claude-agents
+      name: '@local/dsh-claude-agents'
+      config: {}

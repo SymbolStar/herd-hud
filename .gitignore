@@ -1,0 +1,13 @@
+# local-only workspaces (not part of Herd HUD)
+docs/
+dsh-deepseek-usage/
+ai-pet-shell/
+quark_check.py
+
+# build outputs and local state
+agent-hud/build/
+*.app/
+*.log
+*.jsonl
+
+.DS_Store

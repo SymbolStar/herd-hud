@@ -1,0 +1,206 @@
+import Foundation
+
+// MARK: - Layout
+
+enum HUDLayout: String {
+    case vertical
+    case horizontal
+}
+
+// MARK: - Configuration
+
+/// User-editable config at ~/.config/agent-hud/config.json.
+struct HUDConfig {
+    var machines: [String]
+    var refreshSeconds: Double
+    var remoteRefreshSeconds: Double
+    var panelWidth: Double
+    var panelHeightFraction: Double
+    var layout: HUDLayout
+
+    static let `default` = HUDConfig(
+        machines: ["symbol-150-jms"],
+        refreshSeconds: 2.0,
+        remoteRefreshSeconds: 15.0,
+        panelWidth: 160,
+        panelHeightFraction: 0.76,
+        layout: .vertical
+    )
+
+    private struct File: Decodable {
+        var machines: [String]?
+        var refreshSeconds: Double?
+        var remoteRefreshSeconds: Double?
+        var panelWidth: Double?
+        var panelHeightFraction: Double?
+        var layout: String?
+    }
+
+    static var url: URL {
+        URL(fileURLWithPath: NSHomeDirectory())
+            .appendingPathComponent(".config/agent-hud/config.json")
+    }
+
+    static func load() -> HUDConfig {
+        var config = HUDConfig.default
+        guard let data = try? Data(contentsOf: url),
+              let file = try? JSONDecoder().decode(File.self, from: data) else {
+            return config
+        }
+        if let machines = file.machines { config.machines = machines }
+        if let seconds = file.refreshSeconds { config.refreshSeconds = max(1, seconds) }
+        if let seconds = file.remoteRefreshSeconds { config.remoteRefreshSeconds = max(5, seconds) }
+        if let width = file.panelWidth { config.panelWidth = min(520, max(140, width)) }
+        if let fraction = file.panelHeightFraction {
+            config.panelHeightFraction = min(0.95, max(0.35, fraction))
+        }
+        if let layout = file.layout, let parsed = HUDLayout(rawValue: layout) {
+            config.layout = parsed
+        }
+        return config
+    }
+
+    static func writeExampleIfMissing() {
+        guard !FileManager.default.fileExists(atPath: url.path) else { return }
+        try? FileManager.default.createDirectory(
+            at: url.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        let example = """
+        {
+          "machines": ["symbol-150-jms"],
+          "refreshSeconds": 2,
+          "remoteRefreshSeconds": 15,
+          "panelWidth": 160,
+          "panelHeightFraction": 0.76,
+          "layout": "vertical"
+        }
+        """
+        try? example.write(to: url, atomically: true, encoding: .utf8)
+    }
+}
+
+// MARK: - Paths
+
+enum HUDPaths {
+    static var herdrSocket: String {
+        if let override = ProcessInfo.processInfo.environment["HERDR_SOCKET_PATH"], !override.isEmpty {
+            return override
+        }
+        if let xdg = ProcessInfo.processInfo.environment["XDG_CONFIG_HOME"], !xdg.isEmpty {
+            return (xdg as NSString).appendingPathComponent("herdr/herdr.sock")
+        }
+        return URL(fileURLWithPath: NSHomeDirectory())
+            .appendingPathComponent(".config/herdr/herdr.sock").path
+    }
+
+    static var logFile: URL {
+        let dir = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Logs", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir.appendingPathComponent("AgentHUD.log")
+    }
+
+    /// Homebrew may be absent from the app's PATH (it is launchd, not a shell).
+    static func resolveHerdrBinary() -> String {
+        if let override = ProcessInfo.processInfo.environment["HERDR_BIN"], !override.isEmpty {
+            return override
+        }
+        let candidates = [
+            "/opt/homebrew/bin/herdr",
+            "/usr/local/bin/herdr",
+            "/home/linuxbrew/.linuxbrew/bin/herdr",
+            NSHomeDirectory() + "/.local/bin/herdr",
+            NSHomeDirectory() + "/bin/herdr"
+        ]
+        for candidate in candidates where FileManager.default.isExecutableFile(atPath: candidate) {
+            return candidate
+        }
+        return "herdr"
+    }
+}
+
+// MARK: - Logging
+
+enum HUDLog {
+    private static let queue = DispatchQueue(label: "agent-hud.log")
+    private static let formatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
+        return formatter
+    }()
+
+    static func write(_ message: String) {
+        let line = "[\(formatter.string(from: Date()))] \(message)\n"
+        queue.async {
+            guard let data = line.data(using: .utf8) else { return }
+            let url = HUDPaths.logFile
+            if let handle = try? FileHandle(forWritingTo: url) {
+                defer { try? handle.close() }
+                try? handle.seekToEnd()
+                try? handle.write(contentsOf: data)
+            } else {
+                try? data.write(to: url)
+            }
+        }
+    }
+}
+
+// MARK: - Process runner
+
+struct ProcessResult {
+    let status: Int32
+    let stdout: Data
+    let stderr: Data
+    var stderrText: String { String(data: stderr, encoding: .utf8) ?? "" }
+    var stdoutText: String { String(data: stdout, encoding: .utf8) ?? "" }
+}
+
+enum ProcessRunner {
+    static func run(
+        _ executable: String,
+        _ arguments: [String],
+        timeout: TimeInterval = 20
+    ) throws -> ProcessResult {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: executable)
+        process.arguments = arguments
+        let stdout = Pipe()
+        let stderr = Pipe()
+        process.standardOutput = stdout
+        process.standardError = stderr
+        try process.run()
+
+        let killer = DispatchWorkItem {
+            if process.isRunning { process.terminate() }
+        }
+        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + timeout, execute: killer)
+        process.waitUntilExit()
+        killer.cancel()
+
+        let outData = stdout.fileHandleForReading.readDataToEndOfFile()
+        let errData = stderr.fileHandleForReading.readDataToEndOfFile()
+        return ProcessResult(status: process.terminationStatus, stdout: outData, stderr: errData)
+    }
+}
+
+// MARK: - Formatting helpers
+
+enum HUDFormat {
+    /// Compact "how long ago" label for the activity column.
+    static func relative(_ date: Date?, now: Date = Date()) -> String? {
+        guard let date else { return nil }
+        let seconds = max(0, now.timeIntervalSince(date))
+        if seconds < 15 { return "刚刚" }
+        if seconds < 3600 { return "\(Int(seconds / 60))m" }
+        if seconds < 86_400 { return "\(Int(seconds / 3600))h" }
+        return "\(Int(seconds / 86_400))d"
+    }
+
+    static func clock(_ date: Date?) -> String {
+        guard let date else { return "—" }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss"
+        return formatter.string(from: date)
+    }
+}

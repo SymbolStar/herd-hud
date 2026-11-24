@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "智能体看板",
+    "description": "统一查看本机 Herdr 管理的 Claude / OpenCode / Codex agent，可查看终端输出并手动发送消息；Herdr 之外的 Claude 进程只读。"
+  }
+}
