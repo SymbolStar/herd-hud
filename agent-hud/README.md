@@ -7,14 +7,13 @@ remote — as a status-bar companion.
 - **Two layouts** (switch with the small “顶部 / 侧边” button in the panel or
   from the menu bar menu; the choice is remembered):
   - **右侧竖列** — 160 pt floating column at the right edge with one row per agent,
-    showing the same “active now + active in the last hour” set as the top bar
-    (`1h / 全部` toggle in the footer). Below 220 pt the rows switch to a compact
+    showing the same set as the top bar: the 7 most recently active agents
+    (`最近7 / 全部` toggle in the footer). Below 220 pt the rows switch to a compact
     two-line form (name + status/age, badges hidden) and the header/footer shrink.
   - **顶部横向** — a 42 pt strip spanning the top of the screen with scrollable
-    agent chips. It shows agents active now plus anyone active in the last hour
-    (`1h / 全部` toggle). Recent-activity data comes from observed changes, the
-    Claude session registry's `updatedAt`, and a small persisted map so the last
-    hour survives a restart.
+    agent chips. It shows the 7 most recently active agents (`最近7 / 全部` toggle).
+    Recent-activity data comes from observed changes and the Claude session
+    registry's `updatedAt`, persisted across restarts.
 - **Desktop panel**: floating, always-on-top, all spaces, no Dock icon. Working
   and blocked agents pulse. Rows are ordered by most recent activity (Herdr's
   last state-change sequence seeds the order until the HUD observes a terminal

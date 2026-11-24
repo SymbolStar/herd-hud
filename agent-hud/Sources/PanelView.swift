@@ -45,28 +45,20 @@ struct PanelView: View {
 
     private var compact: Bool { width < 220 }
 
+    /// The board rows are already ordered by most recent activity; show the
+    /// latest seven unless the user asks for everything.
+    private static let recentLimit = 7
+
     private var rows: [AgentRow] {
         guard let board else { return [] }
         if showAll { return board.rows }
-        let cutoff = Date().addingTimeInterval(-3600)
-        return board.rows.filter { row in
-            if row.isActive { return true }
-            if let at = row.lastActiveAt { return at >= cutoff }
-            return false
-        }
+        return Array(board.rows.prefix(Self.recentLimit))
     }
 
-    /// The horizontal bar shows anything active now plus agents active in the
-    /// last hour, so it keeps useful context after a turn finishes.
     private var horizontalRows: [AgentRow] {
         guard let board else { return [] }
         if horizontalAll { return board.rows }
-        let cutoff = Date().addingTimeInterval(-3600)
-        return board.rows.filter { row in
-            if row.isActive { return true }
-            if let at = row.lastActiveAt { return at >= cutoff }
-            return false
-        }
+        return Array(board.rows.prefix(Self.recentLimit))
     }
 
     var body: some View {
@@ -184,7 +176,7 @@ struct PanelView: View {
             Image(systemName: "moon.zzz")
                 .font(.system(size: 18, weight: .light))
                 .foregroundStyle(Color.white.opacity(0.35))
-            Text(board.rows.isEmpty ? "没有在运行的 agent" : "最近 1 小时没有活跃 agent")
+            Text(board.rows.isEmpty ? "没有在运行的 agent" : "没有活跃 agent")
                 .font(.system(size: 12))
                 .foregroundStyle(Color.white.opacity(0.55))
             if !board.rows.isEmpty {
@@ -273,12 +265,12 @@ struct PanelView: View {
         Button {
             showAll.toggle()
         } label: {
-            Text(showAll ? "全部" : "1h")
+            Text(showAll ? "全部" : "最近7")
                 .font(.system(size: compact ? 9 : 10, weight: .semibold))
                 .foregroundStyle(Color.white.opacity(0.55))
         }
         .buttonStyle(.plain)
-        .help(showAll ? "只显示最近 1 小时活跃的 agent" : "显示全部 agent")
+        .help(showAll ? "只显示最近活跃的 7 个 agent" : "显示全部 agent")
     }
 
     private func machinePill(_ machine: MachineView) -> some View {
@@ -313,7 +305,7 @@ struct PanelView: View {
                 HStack(spacing: 6) {
                     if let board {
                         if horizontalRows.isEmpty {
-                            Text(board.rows.isEmpty ? "没有在运行的 agent" : "最近 1 小时没有活跃 agent")
+                            Text(board.rows.isEmpty ? "没有在运行的 agent" : "没有活跃 agent")
                                 .font(.system(size: 11))
                                 .foregroundStyle(Color.white.opacity(0.45))
                                 .padding(.horizontal, 4)
@@ -355,12 +347,12 @@ struct PanelView: View {
         Button {
             horizontalAll.toggle()
         } label: {
-            Text(horizontalAll ? "全部" : "1h")
+            Text(horizontalAll ? "全部" : "最近7")
                 .font(.system(size: 9.5, weight: .semibold))
                 .foregroundStyle(Color.white.opacity(0.5))
         }
         .buttonStyle(.plain)
-        .help(horizontalAll ? "只显示最近 1 小时活跃的 agent" : "显示全部 agent")
+        .help(horizontalAll ? "只显示最近活跃的 7 个 agent" : "显示全部 agent")
     }
 
     private var divider: some View {
