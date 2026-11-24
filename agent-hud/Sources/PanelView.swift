@@ -63,9 +63,19 @@ struct PanelView: View {
         return Array(board.rows.prefix(Self.recentLimit))
     }
 
+    /// Width of the folded side tab; the controller sizes the window to match.
+    static let collapsedWidth: CGFloat = 34
+    static let collapsedHeight: CGFloat = 112
+
+    private var isCollapsedTab: Bool { store.layoutMode == .vertical && store.collapsed }
+
     var body: some View {
         Group {
-            if store.layoutMode == .vertical {
+            if isCollapsedTab {
+                collapsedBody
+                    .frame(width: Self.collapsedWidth)
+                    .frame(maxHeight: .infinity)
+            } else if store.layoutMode == .vertical {
                 verticalBody
                     .frame(width: width)
                     .frame(maxHeight: .infinity, alignment: .top)
@@ -78,9 +88,9 @@ struct PanelView: View {
             VisualEffectView()
                 .overlay(Color.black.opacity(0.18))
         )
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: isCollapsedTab ? 10 : 14, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: isCollapsedTab ? 10 : 14, style: .continuous)
                 .stroke(Color.white.opacity(0.10), lineWidth: 0.5)
         )
         .environment(\.colorScheme, .dark)
@@ -108,9 +118,69 @@ struct PanelView: View {
             Spacer(minLength: 2)
             countsInline
             layoutButton
+            collapseButton
         }
         .padding(.horizontal, compact ? 9 : 12)
         .padding(.vertical, compact ? 8 : 10)
+    }
+
+    private var collapseButton: some View {
+        Button {
+            store.setCollapsed(true)
+        } label: {
+            Image(systemName: "chevron.right")
+                .font(.system(size: 9, weight: .bold))
+                .foregroundStyle(Color.white.opacity(0.4))
+                .frame(width: 14, height: 14)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("折叠到屏幕边")
+    }
+
+    // MARK: collapsed side tab
+
+    /// A slim tab that keeps the live counts visible; click anywhere to unfold.
+    private var collapsedBody: some View {
+        VStack(spacing: 9) {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 9, weight: .bold))
+                .foregroundStyle(Color.white.opacity(0.45))
+            if let board {
+                collapsedCount(board.counts.working, color: HUDTheme.working)
+                if board.counts.blocked > 0 {
+                    collapsedCount(board.counts.blocked, color: HUDTheme.blocked)
+                }
+                Text(String(board.counts.total))
+                    .font(.system(size: 10, weight: .medium).monospacedDigit())
+                    .foregroundStyle(Color.white.opacity(0.35))
+                if !board.herdrAvailable {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 9))
+                        .foregroundStyle(HUDTheme.blocked)
+                }
+            } else {
+                ProgressView().controlSize(.mini)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .contentShape(Rectangle())
+        .onTapGesture { store.setCollapsed(false) }
+        .help(collapsedHelp)
+    }
+
+    private func collapsedCount(_ value: Int, color: Color) -> some View {
+        VStack(spacing: 3) {
+            Circle().fill(color).frame(width: 6, height: 6)
+            Text(String(value))
+                .font(.system(size: 11, weight: .semibold).monospacedDigit())
+                .foregroundStyle(Color.white.opacity(0.85))
+        }
+    }
+
+    private var collapsedHelp: String {
+        guard let board else { return "展开 Agent HUD" }
+        return "展开 Agent HUD · \(board.counts.working) 运行中 / \(board.counts.blocked) 等待确认 / \(board.counts.total) 个"
     }
 
     @ViewBuilder

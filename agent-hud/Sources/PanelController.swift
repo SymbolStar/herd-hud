@@ -15,6 +15,10 @@ final class PanelController {
     private let width: CGFloat
     private let heightFraction: Double
     private var layoutCancellable: AnyCancellable?
+    private var collapseCancellable: AnyCancellable?
+    /// Height of the unfolded column, so a drag of the folded tab can be stored
+    /// as the column's own origin (one remembered position for both states).
+    private var expandedHeight: CGFloat = 620
     /// Programmatic moves (mode switches, screen changes) must not be persisted as
     /// user drags; those stale origins caused the panel to land oddly.
     private var layoutChangedAt = Date.distantPast
@@ -64,6 +68,10 @@ final class PanelController {
         layoutCancellable = store.$layoutMode
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in self?.applyLayout() }
+        collapseCancellable = store.$collapsed
+            .dropFirst()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.applyLayout() }
     }
 
     deinit {
@@ -100,8 +108,14 @@ final class PanelController {
 
     @objc private func windowMoved() {
         guard Date().timeIntervalSince(layoutChangedAt) > 0.6 else { return }
+        var origin = panel.frame.origin
+        if store.layoutMode == .vertical && store.collapsed {
+            // The tab sits on the column's right edge, vertically centred.
+            let frame = panel.frame
+            origin = NSPoint(x: frame.maxX - width, y: frame.midY - expandedHeight / 2)
+        }
         UserDefaults.standard.set(
-            NSStringFromPoint(panel.frame.origin),
+            NSStringFromPoint(origin),
             forKey: Self.originKey(for: store.layoutMode)
         )
     }
@@ -125,11 +139,25 @@ final class PanelController {
         switch store.layoutMode {
         case .vertical:
             let height = max(320, min(visibleFrame.height * CGFloat(heightFraction), 760))
-            panel.setContentSize(NSSize(width: width, height: height))
-            applyOrigin(for: .vertical, screen: screen, defaultOrigin: NSPoint(
+            expandedHeight = height
+            let expandedSize = NSSize(width: width, height: height)
+            let expandedOrigin = resolvedOrigin(for: .vertical, screen: screen, size: expandedSize, defaultOrigin: NSPoint(
                 x: visibleFrame.maxX - width - 14,
                 y: visibleFrame.midY - height / 2
             ))
+            layoutChangedAt = Date()
+            if store.collapsed {
+                let tab = NSSize(width: PanelView.collapsedWidth, height: PanelView.collapsedHeight)
+                panel.setContentSize(tab)
+                panel.setFrameOrigin(NSPoint(
+                    x: expandedOrigin.x + width - tab.width,
+                    y: expandedOrigin.y + (height - tab.height) / 2
+                ))
+            } else {
+                panel.setContentSize(expandedSize)
+                panel.setFrameOrigin(expandedOrigin)
+            }
+            HUDLog.write("applyOrigin vertical collapsed=\(store.collapsed) = \(NSStringFromPoint(panel.frame.origin))")
         case .horizontal:
             let barWidth = max(560, visibleFrame.width - 32)
             let barHeight: CGFloat = 42
@@ -145,20 +173,25 @@ final class PanelController {
     /// origin from another display or size must never leave the bar half off-screen.
     private func applyOrigin(for layout: HUDLayout, screen: NSScreen, defaultOrigin: NSPoint) {
         layoutChangedAt = Date()
+        let origin = resolvedOrigin(for: layout, screen: screen, size: panel.frame.size, defaultOrigin: defaultOrigin)
+        panel.setFrameOrigin(origin)
+        HUDLog.write("applyOrigin \(layout.rawValue) = \(NSStringFromPoint(origin))")
+    }
+
+    /// The saved (or default) origin for a frame of `size`, clamped inside the screen.
+    private func resolvedOrigin(for layout: HUDLayout, screen: NSScreen, size: NSSize, defaultOrigin: NSPoint) -> NSPoint {
         let visibleFrame = screen.visibleFrame
         var origin = defaultOrigin
         if let saved = Self.savedOrigin(for: layout), visibleFrame.contains(saved) {
             origin = saved
         }
-        let size = panel.frame.size
         let minX = visibleFrame.minX + 8
         let maxX = max(minX, visibleFrame.maxX - size.width - 8)
         let minY = visibleFrame.minY + 8
         let maxY = max(minY, visibleFrame.maxY - size.height - 8)
         origin.x = min(max(origin.x, minX), maxX)
         origin.y = min(max(origin.y, minY), maxY)
-        panel.setFrameOrigin(origin)
-        HUDLog.write("applyOrigin \(layout.rawValue) = \(NSStringFromPoint(origin))")
+        return origin
     }
 
     private static func originKey(for layout: HUDLayout) -> String {

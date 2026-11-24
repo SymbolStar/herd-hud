@@ -238,6 +238,8 @@ final class AgentStore: ObservableObject {
     @Published private(set) var board: Board?
     @Published private(set) var lastBoardAt: Date?
     @Published var layoutMode: HUDLayout
+    /// The right-edge column can fold into a slim tab; the top strip ignores this.
+    @Published private(set) var collapsed: Bool
 
     let config: HUDConfig
     private let local = HerdrSocket()
@@ -257,6 +259,7 @@ final class AgentStore: ObservableObject {
     private var claudeActivity: [String: Date] = [:]
     private var claudeActivityReadAt = Date.distantPast
     private static let activityKey = "AgentHUD.activity.v1"
+    private static let collapsedKey = "AgentHUD.collapsed"
     private static let activityRetention: TimeInterval = 24 * 60 * 60
 
     init(config: HUDConfig = .load()) {
@@ -267,6 +270,7 @@ final class AgentStore: ObservableObject {
         } else {
             self.layoutMode = config.layout
         }
+        self.collapsed = UserDefaults.standard.bool(forKey: Self.collapsedKey)
         loadActivity()
     }
 
@@ -336,6 +340,13 @@ final class AgentStore: ObservableObject {
         layoutMode = layout
         UserDefaults.standard.set(layout.rawValue, forKey: "AgentHUD.layout")
         HUDLog.write("layout: \(layout.rawValue)")
+    }
+
+    func setCollapsed(_ value: Bool) {
+        guard collapsed != value else { return }
+        collapsed = value
+        UserDefaults.standard.set(value, forKey: Self.collapsedKey)
+        HUDLog.write("collapsed: \(value)")
     }
 
     func start() {
