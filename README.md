@@ -20,7 +20,7 @@ SSH credentials or touches agent processes behind your back.
 
 | Where | What |
 |---|---|
-| macOS HUD | 160 pt right-edge column or 42 pt top strip; live status dots, the 7 most recently active agents (`最近7 / 全部`), click → Herdr pane |
+| macOS HUD | 160 pt right-edge column or 42 pt top strip; live status dots, the 10 most recently active agents (`最近10 / 全部`), click → Herdr pane |
 | Menu bar | `◉N` running agents (`⚠︎M` waiting for confirmation); show/hide, layout, refresh, quit |
 | DSH board | Type/machine filters, blocked → working → idle grouping, output viewer, send message, remote machines via `herdr --machine` |
 

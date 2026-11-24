@@ -47,7 +47,7 @@ struct PanelView: View {
 
     /// The board rows are already ordered by most recent activity; show the
     /// latest seven unless the user asks for everything.
-    private static let recentLimit = 7
+    private static let recentLimit = 10
 
     private var rows: [AgentRow] {
         guard let board else { return [] }
@@ -265,12 +265,12 @@ struct PanelView: View {
         Button {
             showAll.toggle()
         } label: {
-            Text(showAll ? "全部" : "最近7")
+            Text(showAll ? "全部" : "最近10")
                 .font(.system(size: compact ? 9 : 10, weight: .semibold))
                 .foregroundStyle(Color.white.opacity(0.55))
         }
         .buttonStyle(.plain)
-        .help(showAll ? "只显示最近活跃的 7 个 agent" : "显示全部 agent")
+        .help(showAll ? "只显示最近活跃的 10 个 agent" : "显示全部 agent")
     }
 
     private func machinePill(_ machine: MachineView) -> some View {
@@ -347,12 +347,12 @@ struct PanelView: View {
         Button {
             horizontalAll.toggle()
         } label: {
-            Text(horizontalAll ? "全部" : "最近7")
+            Text(horizontalAll ? "全部" : "最近10")
                 .font(.system(size: 9.5, weight: .semibold))
                 .foregroundStyle(Color.white.opacity(0.5))
         }
         .buttonStyle(.plain)
-        .help(horizontalAll ? "只显示最近活跃的 7 个 agent" : "显示全部 agent")
+        .help(horizontalAll ? "只显示最近活跃的 10 个 agent" : "显示全部 agent")
     }
 
     private var divider: some View {
