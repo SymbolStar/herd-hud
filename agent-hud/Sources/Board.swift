@@ -38,6 +38,8 @@ struct Counts: Codable {
     var working = 0
     var blocked = 0
     var idle = 0
+    /// Part of `other`: agents whose turn finished (Herdr status "done").
+    var done = 0
     var other = 0
     var remote = 0
 }
@@ -116,6 +118,9 @@ enum BoardBuilder {
             case "working": counts.working += 1
             case "blocked": counts.blocked += 1
             case "idle": counts.idle += 1
+            case "done":
+                counts.done += 1
+                counts.other += 1
             default: counts.other += 1
             }
             if row.isRemote { counts.remote += 1 }

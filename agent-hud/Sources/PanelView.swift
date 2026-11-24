@@ -65,7 +65,7 @@ struct PanelView: View {
 
     /// Width of the folded side tab; the controller sizes the window to match.
     static let collapsedWidth: CGFloat = 34
-    static let collapsedHeight: CGFloat = 112
+    static let collapsedHeight: CGFloat = 124
 
     private var isCollapsedTab: Bool { store.layoutMode == .vertical && store.collapsed }
 
@@ -141,19 +141,29 @@ struct PanelView: View {
     // MARK: collapsed side tab
 
     /// A slim tab that keeps the live counts visible; click anywhere to unfold.
+    /// Each count is a coloured disc with the number inside; zero counts are
+    /// hidden so the tab only shows what needs attention.
     private var collapsedBody: some View {
-        VStack(spacing: 9) {
+        VStack(spacing: 7) {
             Image(systemName: "chevron.left")
                 .font(.system(size: 9, weight: .bold))
                 .foregroundStyle(Color.white.opacity(0.45))
             if let board {
-                collapsedCount(board.counts.working, color: HUDTheme.working)
-                if board.counts.blocked > 0 {
-                    collapsedCount(board.counts.blocked, color: HUDTheme.blocked)
+                let badges = collapsedBadges(board.counts)
+                if badges.isEmpty {
+                    Circle()
+                        .stroke(Color.white.opacity(0.25), lineWidth: 1)
+                        .frame(width: 22, height: 22)
+                        .overlay(
+                            Text(String(board.counts.total))
+                                .font(.system(size: 10, weight: .semibold).monospacedDigit())
+                                .foregroundStyle(Color.white.opacity(0.4))
+                        )
+                } else {
+                    ForEach(badges, id: \.label) { badge in
+                        countDisc(badge.value, color: badge.color)
+                    }
                 }
-                Text(String(board.counts.total))
-                    .font(.system(size: 10, weight: .medium).monospacedDigit())
-                    .foregroundStyle(Color.white.opacity(0.35))
                 if !board.herdrAvailable {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .font(.system(size: 9))
@@ -163,24 +173,41 @@ struct PanelView: View {
                 ProgressView().controlSize(.mini)
             }
         }
+        .padding(.vertical, 8)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .contentShape(Rectangle())
         .onTapGesture { store.setCollapsed(false) }
         .help(collapsedHelp)
     }
 
-    private func collapsedCount(_ value: Int, color: Color) -> some View {
-        VStack(spacing: 3) {
-            Circle().fill(color).frame(width: 6, height: 6)
-            Text(String(value))
-                .font(.system(size: 11, weight: .semibold).monospacedDigit())
-                .foregroundStyle(Color.white.opacity(0.85))
-        }
+    private struct CountBadge {
+        let label: String
+        let value: Int
+        let color: Color
+    }
+
+    /// Order: waiting for you, running, finished.
+    private func collapsedBadges(_ counts: Counts) -> [CountBadge] {
+        [
+            CountBadge(label: "blocked", value: counts.blocked, color: HUDTheme.blocked),
+            CountBadge(label: "working", value: counts.working, color: HUDTheme.working),
+            CountBadge(label: "done", value: counts.done, color: HUDTheme.done),
+        ].filter { $0.value > 0 }
+    }
+
+    private func countDisc(_ value: Int, color: Color) -> some View {
+        Text(value > 99 ? "99+" : String(value))
+            .font(.system(size: value > 9 ? 9.5 : 11, weight: .bold).monospacedDigit())
+            .foregroundStyle(Color.black.opacity(0.78))
+            .frame(width: 22, height: 22)
+            .background(Circle().fill(color))
+            .overlay(Circle().stroke(Color.white.opacity(0.35), lineWidth: 0.5))
     }
 
     private var collapsedHelp: String {
         guard let board else { return "展开 Agent HUD" }
-        return "展开 Agent HUD · \(board.counts.working) 运行中 / \(board.counts.blocked) 等待确认 / \(board.counts.total) 个"
+        let c = board.counts
+        return "展开 Agent HUD · \(c.blocked) 等待确认 / \(c.working) 运行中 / \(c.done) 已完成 / \(c.total) 个"
     }
 
     @ViewBuilder
