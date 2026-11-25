@@ -116,7 +116,10 @@ do {
     let b3 = board([
         rawAgent("w7:p1", cwd: "/Users/me/carher-runtime", title: "π - carher-runtime"),
     ])
-    checkEqual(b3.rows.first?.name, "carher-runtime", "an unnamed pi session falls back to the directory")
+    // Note: `piSessionName` returns "" here and `displayName` falls back to the
+    // directory, so the name is the directory either way. This documents the
+    // user-visible result rather than guarding one branch.
+    checkEqual(b3.rows.first?.name, "carher-runtime", "an unnamed pi session shows the directory")
 
     let b4 = board([
         rawAgent("w1:p1", cwd: "/tmp/x", title: "custom title"),
@@ -253,8 +256,8 @@ do {
     ]
     let groups = WorkspaceGrouping.groups(from: rows)
     checkEqual(groups.map(\.workspace), ["alpha", "beta"], "groups keep first-seen order")
-    checkEqual(groups[0].rows.map(\.paneId), ["a1", "a2", "a3"], "within-group order is preserved")
-    checkEqual(groups[1].rows.map(\.paneId), ["b1"], "each group gets only its own rows")
+    checkEqual(groups.first?.rows.map(\.paneId) ?? [], ["a1", "a2", "a3"], "within-group order is preserved")
+    checkEqual(groups.dropFirst().first?.rows.map(\.paneId) ?? [], ["b1"], "each group gets only its own rows")
 
     let totalRows = groups.reduce(0) { $0 + $1.rows.count }
     checkEqual(totalRows, rows.count, "grouping never drops a row")
@@ -279,7 +282,7 @@ do {
     ]
     let groups = WorkspaceGrouping.groups(from: rows)
     checkEqual(groups.map(\.workspace), ["alpha", "其他"], "fallback stays a single group, last")
-    checkEqual(groups[1].rows.map(\.paneId), ["p9", "p8"], "fallback rows keep board order")
+    checkEqual(groups.dropFirst().first?.rows.map(\.paneId) ?? [], ["p9", "p8"], "fallback rows keep board order")
 }
 
 section("remote machines")
@@ -304,9 +307,11 @@ do {
 }
 
 do {
-    // Same status and activity: local agents sort ahead of remote ones.
+    // Same status and activity, so the machine check decides. The remote pane
+    // id is chosen so the *name* tie-breaker would put it first: if the
+    // local-before-remote rule were removed, this assertion would fail.
     var channel = RemoteState()
-    channel.snapshot = snapshot([rawAgent("wr:p1", status: "idle")])
+    channel.snapshot = snapshot([rawAgent("w0:p1", status: "idle")])
     let b = BoardBuilder.build(
         config: .default,
         local: snapshot([rawAgent("w1:p1", status: "idle")]),
@@ -317,8 +322,25 @@ do {
     )
     checkEqual(
         b.rows.map(\.id),
-        ["w1:p1", "symbol-150-jms::wr:p1"],
+        ["w1:p1", "symbol-150-jms::w0:p1"],
         "local rows sort ahead of remote rows on a tie"
+    )
+}
+
+section("kind ordering")
+do {
+    // Equal status, activity and sequence: the kind order breaks the tie.
+    let b = board([
+        rawAgent("w1:p1", kind: "pi"),
+        rawAgent("w1:p2", kind: "claude"),
+        rawAgent("w1:p3", kind: "codex"),
+        rawAgent("w1:p4", kind: "opencode"),
+        rawAgent("w1:p5", kind: "other-agent"),
+    ])
+    checkEqual(
+        b.rows.map(\.kind),
+        ["claude", "opencode", "codex", "pi", "other-agent"],
+        "kinds sort claude, opencode, codex, pi, then anything else"
     )
 }
 

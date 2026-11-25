@@ -3,7 +3,7 @@ import Foundation
 // MARK: - Workspace grouping
 //
 // Pure presentation logic shared by the vertical column and the top strip, and
-// covered by `Tests/HUDCoreTests.swift`.
+// covered by `Tests/main.swift`.
 
 /// One workspace's agents, in board order.
 struct WorkspaceGroup: Identifiable {
