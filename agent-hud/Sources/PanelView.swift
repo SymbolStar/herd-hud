@@ -530,7 +530,7 @@ struct PanelView: View {
     private var horizontalGroupSeparator: some View {
         Rectangle()
             .fill(Color.white.opacity(0.12))
-            .frame(width: 1, height: 14)
+            .frame(width: 1, height: 18)
             .padding(.horizontal, 2)
     }
 
