@@ -116,7 +116,7 @@ struct PanelView: View {
     }
 
     private var header: some View {
-        HStack(spacing: compact ? 5 : 8) {
+        HStack(spacing: compact ? 4 : 8) {
             // The wordmark yields to the counts: in the compact column the four
             // status pills plus the two buttons leave no room for it.
             if !compact {
@@ -129,7 +129,12 @@ struct PanelView: View {
             }
             Spacer(minLength: 2)
             countsInline
-            layoutButton
+            // Four counts plus this button need roughly 140 pt of header at the
+            // widest (three-digit counts, capped at 99+). Below that the counts
+            // win and the switch stays in the menu bar ("布局：顶部横向 / 右侧竖列").
+            if !compact || width >= 165 {
+                layoutButton
+            }
             collapseButton
         }
         .padding(.horizontal, compact ? 9 : 12)
@@ -153,8 +158,8 @@ struct PanelView: View {
     // MARK: collapsed side tab
 
     /// A slim tab that keeps the live counts visible; click anywhere to unfold.
-    /// Each count is a coloured disc with the number inside; zero counts are
-    /// hidden so the tab only shows what needs attention.
+    /// Each count is a coloured disc with the number inside; `StatusSummary`
+    /// decides which ones appear (running always, the rest when non-zero).
     private var collapsedBody: some View {
         VStack(spacing: 7) {
             Image(systemName: "chevron.left")
@@ -198,6 +203,8 @@ struct PanelView: View {
         }
     }
 
+    /// Idle uses a solid white rather than the row dot's translucent white, so
+    /// the number inside a disc or pill stays legible.
     private static func color(for status: StatusCount) -> Color {
         switch status {
         case .blocked: return HUDTheme.blocked
@@ -253,10 +260,14 @@ struct PanelView: View {
     private func countPill(_ value: Int, color: Color) -> some View {
         HStack(spacing: 3) {
             Circle().fill(color).frame(width: 6, height: 6)
-            Text(String(value))
+            // Capped like the folded tab's disc, and never allowed to wrap: a
+            // wrapped number is far worse than a clipped one in a 160 pt header.
+            Text(value > 99 ? "99+" : String(value))
                 .font(.system(size: compact ? 10 : 11, weight: .semibold).monospacedDigit())
                 .foregroundStyle(Color.white.opacity(0.85))
+                .fixedSize()
         }
+        .fixedSize()
     }
 
     private var groupedRows: [WorkspaceGroup] { WorkspaceGrouping.groups(from: rows) }

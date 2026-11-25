@@ -376,7 +376,16 @@ do {
         "a cleared status drops out again"
     )
 
-    checkEqual(StatusCount.idle.value(in: counts), 12, "each status reads its own count")
+    // Distinct values, so swapping any two mappings fails.
+    var distinct = Counts()
+    distinct.blocked = 1
+    distinct.working = 2
+    distinct.done = 3
+    distinct.idle = 4
+    for (status, expected) in [(StatusCount.blocked, 1), (.working, 2), (.done, 3), (.idle, 4)] {
+        checkEqual(status.value(in: distinct), expected, "\(status.rawValue) reads its own count")
+    }
+
     checkEqual(StatusCount.blocked.value(in: counts), 0, "a zeroed status reads zero")
 }
 
