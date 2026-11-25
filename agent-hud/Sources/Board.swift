@@ -38,6 +38,8 @@ struct Counts: Codable {
     var working = 0
     var blocked = 0
     var idle = 0
+    /// Part of `other`: agents whose turn finished (Herdr status "done").
+    var done = 0
     var other = 0
     var remote = 0
 }
@@ -116,6 +118,9 @@ enum BoardBuilder {
             case "working": counts.working += 1
             case "blocked": counts.blocked += 1
             case "idle": counts.idle += 1
+            case "done":
+                counts.done += 1
+                counts.other += 1
             default: counts.other += 1
             }
             if row.isRemote { counts.remote += 1 }
@@ -238,6 +243,11 @@ final class AgentStore: ObservableObject {
     @Published private(set) var board: Board?
     @Published private(set) var lastBoardAt: Date?
     @Published var layoutMode: HUDLayout
+    /// The right-edge column can fold into a slim tab; the top strip ignores this.
+    @Published private(set) var collapsed: Bool
+    /// User-dragged size of the unfolded side column; nil until the first resize,
+    /// so config.json keeps controlling the size until then.
+    @Published private(set) var sideSize: CGSize?
 
     let config: HUDConfig
     private let local = HerdrSocket()
@@ -257,6 +267,8 @@ final class AgentStore: ObservableObject {
     private var claudeActivity: [String: Date] = [:]
     private var claudeActivityReadAt = Date.distantPast
     private static let activityKey = "AgentHUD.activity.v1"
+    private static let collapsedKey = "AgentHUD.collapsed"
+    private static let sideSizeKey = "AgentHUD.sideSize.v1"
     private static let activityRetention: TimeInterval = 24 * 60 * 60
 
     init(config: HUDConfig = .load()) {
@@ -266,6 +278,11 @@ final class AgentStore: ObservableObject {
             self.layoutMode = layout
         } else {
             self.layoutMode = config.layout
+        }
+        self.collapsed = UserDefaults.standard.bool(forKey: Self.collapsedKey)
+        if let raw = UserDefaults.standard.string(forKey: Self.sideSizeKey) {
+            let size = NSSizeFromString(raw)
+            if size.width > 0, size.height > 0 { self.sideSize = size }
         }
         loadActivity()
     }
@@ -336,6 +353,26 @@ final class AgentStore: ObservableObject {
         layoutMode = layout
         UserDefaults.standard.set(layout.rawValue, forKey: "AgentHUD.layout")
         HUDLog.write("layout: \(layout.rawValue)")
+    }
+
+    func setCollapsed(_ value: Bool) {
+        guard collapsed != value else { return }
+        collapsed = value
+        UserDefaults.standard.set(value, forKey: Self.collapsedKey)
+        HUDLog.write("collapsed: \(value)")
+    }
+
+    /// Remember a size the user dragged the side column to (nil = back to config).
+    func setSideSize(_ size: CGSize?) {
+        guard sideSize != size else { return }
+        sideSize = size
+        if let size {
+            UserDefaults.standard.set(NSStringFromSize(size), forKey: Self.sideSizeKey)
+            HUDLog.write("side size: \(Int(size.width))x\(Int(size.height))")
+        } else {
+            UserDefaults.standard.removeObject(forKey: Self.sideSizeKey)
+            HUDLog.write("side size: reset")
+        }
     }
 
     func start() {

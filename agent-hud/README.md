@@ -74,6 +74,12 @@ run):
 `layout` accepts `"vertical"` (right column) or `"horizontal"` (top strip); the
 in-app switch overrides it and is remembered in UserDefaults.
 
+`panelWidth` and `panelHeightFraction` set the side column's default size. Drag
+any edge or corner of the unfolded column to resize it (width 140–520 pt,
+height from 200 pt up to the screen); the dragged size is remembered and
+overrides the config. Menu-bar item “侧边栏恢复默认大小” goes back to the
+config values. The folded tab and the top strip keep a fixed size.
+
 `machines` must match Herdr saved machine labels (`herdr machine list`).
 `HERDR_BIN` and `HERDR_SOCKET_PATH` environment variables override the binary
 and socket paths. Panel position is remembered when you drag it; use the menu

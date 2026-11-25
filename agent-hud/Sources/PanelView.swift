@@ -39,11 +39,14 @@ enum HUDTheme {
 
 struct PanelView: View {
     @ObservedObject var store: AgentStore
-    let width: CGFloat
+    /// Configured column width; a user-dragged size overrides it.
+    let configuredWidth: CGFloat
     @State private var showAll = false
     @State private var horizontalAll = false
 
     private var board: Board? { store.board }
+
+    private var width: CGFloat { store.sideSize?.width ?? configuredWidth }
 
     private var compact: Bool { width < 220 }
 
@@ -63,12 +66,21 @@ struct PanelView: View {
         return Array(board.rows.prefix(Self.recentLimit))
     }
 
+    /// Width of the folded side tab; the controller sizes the window to match.
+    static let collapsedWidth: CGFloat = 34
+    static let collapsedHeight: CGFloat = 150
+
+    private var isCollapsedTab: Bool { store.layoutMode == .vertical && store.collapsed }
+
     var body: some View {
         Group {
-            if store.layoutMode == .vertical {
+            if isCollapsedTab {
+                collapsedBody
+                    .frame(width: Self.collapsedWidth)
+                    .frame(maxHeight: .infinity)
+            } else if store.layoutMode == .vertical {
                 verticalBody
-                    .frame(width: width)
-                    .frame(maxHeight: .infinity, alignment: .top)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             } else {
                 horizontalBody
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
@@ -78,9 +90,9 @@ struct PanelView: View {
             VisualEffectView()
                 .overlay(Color.black.opacity(0.18))
         )
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: isCollapsedTab ? 10 : 14, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: isCollapsedTab ? 10 : 14, style: .continuous)
                 .stroke(Color.white.opacity(0.10), lineWidth: 0.5)
         )
         .environment(\.colorScheme, .dark)
@@ -108,9 +120,88 @@ struct PanelView: View {
             Spacer(minLength: 2)
             countsInline
             layoutButton
+            collapseButton
         }
         .padding(.horizontal, compact ? 9 : 12)
         .padding(.vertical, compact ? 8 : 10)
+    }
+
+    private var collapseButton: some View {
+        Button {
+            store.setCollapsed(true)
+        } label: {
+            Image(systemName: "chevron.right")
+                .font(.system(size: 9, weight: .bold))
+                .foregroundStyle(Color.white.opacity(0.4))
+                .frame(width: 14, height: 14)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("折叠到屏幕边")
+    }
+
+    // MARK: collapsed side tab
+
+    /// A slim tab that keeps the live counts visible; click anywhere to unfold.
+    /// Each count is a coloured disc with the number inside; zero counts are
+    /// hidden so the tab only shows what needs attention.
+    private var collapsedBody: some View {
+        VStack(spacing: 7) {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 9, weight: .bold))
+                .foregroundStyle(Color.white.opacity(0.45))
+            if let board {
+                ForEach(collapsedBadges(board.counts), id: \.label) { badge in
+                    countDisc(badge.value, color: badge.color)
+                }
+                if !board.herdrAvailable {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 9))
+                        .foregroundStyle(HUDTheme.blocked)
+                }
+            } else {
+                ProgressView().controlSize(.mini)
+            }
+        }
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .contentShape(Rectangle())
+        .onTapGesture { store.setCollapsed(false) }
+        .help(collapsedHelp)
+    }
+
+    private struct CountBadge {
+        let label: String
+        let value: Int
+        let color: Color
+    }
+
+    /// Order: waiting for you, running, finished, idle. The running disc is
+    /// always shown (0 included) so the tab never reads as empty; the others
+    /// appear only when their count is non-zero. The idle disc uses a solid
+    /// white rather than the translucent row dot so its number stays legible.
+    private func collapsedBadges(_ counts: Counts) -> [CountBadge] {
+        [
+            CountBadge(label: "blocked", value: counts.blocked, color: HUDTheme.blocked),
+            CountBadge(label: "working", value: counts.working, color: HUDTheme.working),
+            CountBadge(label: "done", value: counts.done, color: HUDTheme.done),
+            CountBadge(label: "idle", value: counts.idle, color: Color.white.opacity(0.82)),
+        ].filter { $0.value > 0 || $0.label == "working" }
+    }
+
+    private func countDisc(_ value: Int, color: Color) -> some View {
+        Text(value > 99 ? "99+" : String(value))
+            .font(.system(size: value > 9 ? 9.5 : 11, weight: .bold).monospacedDigit())
+            .foregroundStyle(Color.black.opacity(0.78))
+            .frame(width: 22, height: 22)
+            .background(Circle().fill(color))
+            .overlay(Circle().stroke(Color.white.opacity(0.35), lineWidth: 0.5))
+    }
+
+    private var collapsedHelp: String {
+        guard let board else { return "展开 Agent HUD" }
+        let c = board.counts
+        return "展开 Agent HUD · \(c.blocked) 等待确认 / \(c.working) 运行中 / \(c.done) 已完成 / \(c.idle) 空闲 / \(c.total) 个"
     }
 
     @ViewBuilder
