@@ -43,6 +43,11 @@ struct PanelView: View {
     let configuredWidth: CGFloat
     @State private var showAll = false
     @State private var horizontalAll = false
+    /// Workspace labels the user has folded; persisted in UserDefaults.
+    @State private var collapsedWorkspaces: Set<String> = {
+        let saved = UserDefaults.standard.stringArray(forKey: "AgentHUD.collapsedWorkspaces") ?? []
+        return Set(saved)
+    }()
 
     private var board: Board? { store.board }
 
@@ -268,9 +273,12 @@ struct PanelView: View {
                 ScrollView(.vertical, showsIndicators: false) {
                     LazyVStack(spacing: 0) {
                         ForEach(groupedRows, id: \.workspace) { group in
-                            workspaceSectionHeader(group.workspace, count: group.rows.count)
-                            ForEach(group.rows) { row in
-                                AgentRowView(row: row, compact: compact) { store.focus(row) }
+                            let isCollapsed = collapsedWorkspaces.contains(group.workspace)
+                            workspaceSectionHeader(group.workspace, count: group.rows.count, collapsed: isCollapsed)
+                            if !isCollapsed {
+                                ForEach(group.rows) { row in
+                                    AgentRowView(row: row, compact: compact) { store.focus(row) }
+                                }
                             }
                         }
                     }
@@ -285,8 +293,12 @@ struct PanelView: View {
         }
     }
 
-    private func workspaceSectionHeader(_ label: String, count: Int) -> some View {
+    private func workspaceSectionHeader(_ label: String, count: Int, collapsed: Bool) -> some View {
         HStack(spacing: 4) {
+            Image(systemName: collapsed ? "chevron.right" : "chevron.down")
+                .font(.system(size: compact ? 7 : 8, weight: .bold))
+                .foregroundStyle(Color.white.opacity(0.30))
+                .frame(width: 10)
             Text(label)
                 .font(.system(size: compact ? 9 : 10, weight: .semibold))
                 .foregroundStyle(Color.white.opacity(0.45))
@@ -299,6 +311,17 @@ struct PanelView: View {
         .padding(.horizontal, compact ? 9 : 12)
         .padding(.top, 10)
         .padding(.bottom, 2)
+        .contentShape(Rectangle())
+        .onTapGesture { toggleWorkspace(label) }
+    }
+
+    private func toggleWorkspace(_ label: String) {
+        if collapsedWorkspaces.contains(label) {
+            collapsedWorkspaces.remove(label)
+        } else {
+            collapsedWorkspaces.insert(label)
+        }
+        UserDefaults.standard.set(Array(collapsedWorkspaces), forKey: "AgentHUD.collapsedWorkspaces")
     }
 
     private func emptyState(_ board: Board) -> some View {
