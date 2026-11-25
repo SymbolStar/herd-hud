@@ -9,6 +9,7 @@ struct RawAgent {
     let cwd: String?
     let title: String?
     let sessionId: String?
+    let workspaceId: String?
     /// Monotonic per-machine sequence of the last state change (Herdr ordering hint).
     let stateChangeSeq: Int
     /// Per-pane content revision; changing between polls means the agent was active.
@@ -83,6 +84,7 @@ func parseSnapshot(_ data: Data) throws -> Snapshot {
                 cwd: agent["cwd"] as? String,
                 title: title,
                 sessionId: sessionId,
+                workspaceId: agent["workspace_id"] as? String,
                 stateChangeSeq: agent["state_change_seq"] as? Int ?? 0,
                 revision: agent["revision"] as? Int ?? 0
             )

@@ -12,6 +12,8 @@ struct AgentRow: Identifiable, Codable {
     let paneId: String
     let cwd: String?
     let sessionId: String?
+    /// Herdr workspace label this agent belongs to (nil for remote agents without workspace info).
+    let workspace: String?
     /// Herdr's last state-change sequence; used as a recency hint before the HUD
     /// has observed the agent itself.
     let activitySeq: Int
@@ -173,6 +175,7 @@ private final class RowBuilder {
         activity: [String: Date]
     ) -> AgentRow {
         let id = machine.map { "\($0)::\(agent.paneId)" } ?? agent.paneId
+        let workspaceLabel = agent.workspaceId.flatMap { snapshot.workspaces[$0] }
         return AgentRow(
             id: id,
             name: displayName(agent, snapshot: snapshot),
@@ -182,6 +185,7 @@ private final class RowBuilder {
             paneId: agent.paneId,
             cwd: agent.cwd,
             sessionId: agent.sessionId,
+            workspace: workspaceLabel,
             activitySeq: agent.stateChangeSeq,
             lastActiveAt: activity[id]
         )
