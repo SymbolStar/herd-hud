@@ -88,6 +88,17 @@ gh release create v0.3.0 --generate-notes
 
 See [CHANGELOG.md](CHANGELOG.md) for the release history.
 
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every pull request and on pushes to `main`:
+
+| Job | Runner | What it checks |
+|---|---|---|
+| `dsh-plugin` | ubuntu-latest | `node --check` on every `*.js` module, then `test/board.test.mjs` and `test/machines.test.mjs` |
+| `agent-hud` | macos-latest | `agent-hud/build.sh`; `Info.plist` `CFBundleShortVersionString` equals `VERSION`, `CFBundleVersion` equals the commit count; the built binary's `--dump` reports the `VERSION` value as `hudVersion` |
+
+The macOS job needs no Herdr: `--dump --no-remote` prints a board with no agents when the socket is missing.
+
 ## Design notes
 
 - [dsh-claude-agents/DESIGN-send-message.md](dsh-claude-agents/DESIGN-send-message.md) —
