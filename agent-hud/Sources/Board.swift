@@ -181,10 +181,27 @@ private final class RowBuilder {
     }
 
     private func displayName(_ agent: RawAgent, snapshot: Snapshot) -> String {
-        let title = cleanTitle(agent.title)
+        var title = cleanTitle(agent.title)
+        if agent.kind == "pi" { title = Self.piSessionName(title, cwd: agent.cwd) }
         if !title.isEmpty { return title }
         if let cwd = agent.cwd, !cwd.isEmpty { return (cwd as NSString).lastPathComponent }
         return agent.paneId
+    }
+
+    /// pi sets the terminal title to "π - <session name> - <cwd basename>", or
+    /// "π - <cwd basename>" for an unnamed session. After `cleanTitle` drops the
+    /// glyph, keep only the session name; an unnamed session yields "" so the
+    /// caller falls back to the directory.
+    static func piSessionName(_ title: String, cwd: String?) -> String {
+        guard let cwd, !cwd.isEmpty else { return title }
+        let base = (cwd as NSString).lastPathComponent
+        guard !base.isEmpty else { return title }
+        if title == base { return "" }
+        let suffix = " - " + base
+        if title.hasSuffix(suffix) {
+            return String(title.dropLast(suffix.count)).trimmingCharacters(in: .whitespaces)
+        }
+        return title
     }
 
     private func cleanTitle(_ raw: String?) -> String {

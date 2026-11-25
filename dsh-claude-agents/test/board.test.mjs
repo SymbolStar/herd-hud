@@ -17,6 +17,7 @@ import {
   apply,
   configureMachines,
   mergeBoard,
+  piSessionName,
   refreshMachines,
   resetCaches,
   ROUTE_AGENTS,
@@ -344,6 +345,51 @@ try {
   const readOnlyAgent = merged.agents.find((agent) => agent.key === `claude:${betaSession}`);
   assert.equal(readOnlyAgent.control, null);
   assert.equal(readOnlyAgent.status, 'idle');
+
+  // ── 2b. pi titles "π - <session> - <dir>" show only the session name
+  assert.equal(piSessionName('litellm额度 - gongchenhao', 'gongchenhao'), 'litellm额度');
+  assert.equal(piSessionName('runtime flow - regression - carher-runtime', 'carher-runtime'), 'runtime flow - regression');
+  assert.equal(piSessionName('carher-runtime', 'carher-runtime'), '', 'unnamed session falls back');
+  assert.equal(piSessionName('custom title', 'carher-runtime'), 'custom title');
+  const piBoard = mergeBoard({
+    claude: { sessions: [], notes: [] },
+    herdr: {
+      available: true,
+      protocol: 22,
+      version: '0.9.5',
+      snapshot: {
+        workspaces: [{ workspace_id: 'w5', label: 'home' }],
+        tabs: [{ tab_id: 'w5:t1', label: '1' }],
+        agents: [
+          {
+            pane_id: 'w5:p1',
+            agent: 'pi',
+            agent_status: 'idle',
+            cwd: '/Users/me/gongchenhao',
+            workspace_id: 'w5',
+            tab_id: 'w5:t1',
+            terminal_title: 'π - litellm额度 - gongchenhao',
+            terminal_title_stripped: 'π - litellm额度 - gongchenhao',
+          },
+          {
+            pane_id: 'w5:p2',
+            agent: 'pi',
+            agent_status: 'idle',
+            cwd: '/Users/me/gongchenhao',
+            workspace_id: 'w5',
+            tab_id: 'w5:t1',
+            terminal_title: 'π - gongchenhao',
+            terminal_title_stripped: 'π - gongchenhao',
+          },
+        ],
+      },
+      error: null,
+    },
+    now,
+  });
+  assert.equal(piBoard.agents.find((agent) => agent.key === 'w5:p1').name, 'litellm额度');
+  assert.equal(piBoard.agents.find((agent) => agent.key === 'w5:p2').name, 'home / gongchenhao', 'unnamed pi falls back to workspace/cwd');
+  assert.equal(piBoard.counts.pi, 2);
 
   // ── 3. routes
   resetCaches();

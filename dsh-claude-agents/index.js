@@ -791,9 +791,10 @@ function normalizeStatus(status) {
 }
 
 function herdrAgentName(agent, workspaceLabel, tabLabel) {
-  const title = cleanTitle(agent.terminal_title_stripped || agent.terminal_title);
-  const generic = new Set(['opencode', 'codex', 'claude', 'claude code', 'terminal']);
   const cwdBase = typeof agent.cwd === 'string' ? path.basename(agent.cwd) : '';
+  let title = cleanTitle(agent.terminal_title_stripped || agent.terminal_title);
+  if (agent.agent === 'pi') title = piSessionName(title, cwdBase);
+  const generic = new Set(['opencode', 'codex', 'claude', 'claude code', 'terminal']);
   if (title && !generic.has(title.toLowerCase()) && title !== cwdBase) return title;
   if (tabLabel && !/^\d+$/.test(tabLabel)) return workspaceLabel ? `${workspaceLabel} / ${tabLabel}` : tabLabel;
   if (workspaceLabel) return `${workspaceLabel} / ${cwdBase || agent.pane_id}`;
@@ -806,11 +807,22 @@ function agentName(agent, snapshot) {
   return herdrAgentName(agent, workspaceLabels.get(agent.workspace_id) || null, tabLabels.get(agent.tab_id) || null);
 }
 
+/**
+ * pi titles are "π - <session name> - <cwd basename>" ("π - <cwd basename>" when
+ * unnamed). After cleanTitle drops the glyph, keep only the session name.
+ */
+export function piSessionName(title, cwdBase) {
+  if (!title || !cwdBase) return title;
+  if (title === cwdBase) return '';
+  const suffix = ` - ${cwdBase}`;
+  return title.endsWith(suffix) ? title.slice(0, -suffix.length).trim() : title;
+}
+
 function cleanTitle(value) {
   if (typeof value !== 'string') return '';
   return value
     .replace(/^[\u2000-\u3000\uFE0F\uFFFD\s\u2022\u00b7\u25cf\u25cb\u25d0\u25d1\u2733\u2734\u2726\u2736\u273b\u273d\u2023\u203b\u25aa\u25ab]+/u, '')
-    .replace(/^(?:oc|opencode|codex|claude)\s*[|:>-]\s*/i, '')
+    .replace(/^(?:oc|opencode|codex|claude|π)\s*[|:>-]\s*/i, '')
     .replace(/\s+/g, ' ')
     .trim();
 }
