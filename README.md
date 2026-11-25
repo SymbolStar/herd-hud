@@ -78,13 +78,28 @@ The project-wide version lives in the `VERSION` file at the repository root.
 menu bar, and `--dump` JSON. The DSH plugin's `package.json` version is kept in
 sync by `scripts/release.sh`.
 
-To cut a release:
+To cut a release, land the version bump and CHANGELOG entry on `main` first
+(through a pull request like any other change), then tag the merge commit:
 
 ```sh
+# 1. Bump the version and record the release in a PR
 scripts/release.sh 0.3.0   # bump, validate CHANGELOG, build, commit, tag
-git push origin main --tags
+#    ...open the PR, let CI pass, merge it...
+
+# 2. On an up-to-date main, tag the merged commit
+#    (nothing left to commit, so the script only builds and tags)
+git checkout main && git pull
+scripts/release.sh
+
+# 3. Push that one tag and publish the release
+git push origin v0.3.0
 gh release create v0.3.0 --generate-notes
 ```
+
+Tag after merge, never before: the script tags `HEAD`, and a squash or rebase
+merge rewrites the branch commit, which would leave the tag pointing at code
+`main` never contained. Push the single tag rather than `--tags`, which would
+push every local tag.
 
 See [CHANGELOG.md](CHANGELOG.md) for the release history.
 

@@ -4,6 +4,30 @@ All notable changes to Herd HUD are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and versions use [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] — 2026-11-25
+
+### Added
+
+- **Agents grouped by Herdr workspace** — the side column now lists agents under
+  workspace section headers (label and count), matching the Herdr TUI's
+  workspace structure. Groups appear in most-recent-activity order, and agents
+  without a workspace are collected in an "其他" group. Within a group the
+  most-recent-activity order is unchanged. (#3)
+- **Collapsible workspace sections** — click a workspace header to fold or
+  unfold its agents. A chevron (▸ folded, ▾ unfolded) shows the state, and the
+  folded set is remembered across restarts (`AgentHUD.collapsedWorkspaces`). (#3)
+- **Continuous integration** — `.github/workflows/ci.yml` runs on every pull
+  request and on pushes to `main`: the DSH plugin's syntax and both test files
+  on ubuntu, and `agent-hud/build.sh` plus version-stamping assertions on
+  macOS. (#4)
+- `--dump` JSON rows carry the agent's `workspace` label. (#3)
+
+### Changed
+
+- `dsh-claude-agents/package.json` reuses `0.3.0`, a version it also carried at
+  `v0.1.0`. The package is private, so the only effect is that an old install
+  reports the same version string as this release.
+
 ## [0.2.0] — 2026-11-25
 
 First versioned release, covering everything since the initial commit.
@@ -46,5 +70,6 @@ First versioned release, covering everything since the initial commit.
 Initial commit: macOS floating HUD + DSH sidebar board, Herdr socket and
 remote-machine integration, click-to-jump via cmux.
 
+[0.3.0]: https://github.com/SymbolStar/herd-hud/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/SymbolStar/herd-hud/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/SymbolStar/herd-hud/releases/tag/v0.1.0
