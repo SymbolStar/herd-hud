@@ -43,6 +43,11 @@ struct PanelView: View {
     let configuredWidth: CGFloat
     @State private var showAll = false
     @State private var horizontalAll = false
+    /// Workspace labels the user has folded; persisted in UserDefaults.
+    @State private var collapsedWorkspaces: Set<String> = {
+        let saved = UserDefaults.standard.stringArray(forKey: "AgentHUD.collapsedWorkspaces") ?? []
+        return Set(saved)
+    }()
 
     private var board: Board? { store.board }
 
@@ -241,6 +246,24 @@ struct PanelView: View {
         }
     }
 
+    /// Rows grouped by workspace label, preserving the within-group order from
+    /// the board (most recently active first). Agents without a workspace land
+    /// in a trailing "其他" group.
+    private var groupedRows: [(workspace: String, rows: [AgentRow])] {
+        var groups: [(key: String, rows: [AgentRow])] = []
+        var index: [String: Int] = [:]
+        for row in rows {
+            let key = row.workspace ?? "其他"
+            if let i = index[key] {
+                groups[i].rows.append(row)
+            } else {
+                index[key] = groups.count
+                groups.append((key: key, rows: [row]))
+            }
+        }
+        return groups.map { (workspace: $0.key, rows: $0.rows) }
+    }
+
     @ViewBuilder
     private var verticalContent: some View {
         if let board {
@@ -249,8 +272,14 @@ struct PanelView: View {
             } else {
                 ScrollView(.vertical, showsIndicators: false) {
                     LazyVStack(spacing: 0) {
-                        ForEach(rows) { row in
-                            AgentRowView(row: row, compact: compact) { store.focus(row) }
+                        ForEach(groupedRows, id: \.workspace) { group in
+                            let isCollapsed = collapsedWorkspaces.contains(group.workspace)
+                            workspaceSectionHeader(group.workspace, count: group.rows.count, collapsed: isCollapsed)
+                            if !isCollapsed {
+                                ForEach(group.rows) { row in
+                                    AgentRowView(row: row, compact: compact) { store.focus(row) }
+                                }
+                            }
                         }
                     }
                     .padding(.vertical, 4)
@@ -262,6 +291,37 @@ struct PanelView: View {
         } else {
             loadingState
         }
+    }
+
+    private func workspaceSectionHeader(_ label: String, count: Int, collapsed: Bool) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: collapsed ? "chevron.right" : "chevron.down")
+                .font(.system(size: compact ? 7 : 8, weight: .bold))
+                .foregroundStyle(Color.white.opacity(0.30))
+                .frame(width: 10)
+            Text(label)
+                .font(.system(size: compact ? 9 : 10, weight: .semibold))
+                .foregroundStyle(Color.white.opacity(0.45))
+                .lineLimit(1)
+            Text(String(count))
+                .font(.system(size: compact ? 8 : 9, weight: .medium).monospacedDigit())
+                .foregroundStyle(Color.white.opacity(0.30))
+            Spacer()
+        }
+        .padding(.horizontal, compact ? 9 : 12)
+        .padding(.top, 10)
+        .padding(.bottom, 2)
+        .contentShape(Rectangle())
+        .onTapGesture { toggleWorkspace(label) }
+    }
+
+    private func toggleWorkspace(_ label: String) {
+        if collapsedWorkspaces.contains(label) {
+            collapsedWorkspaces.remove(label)
+        } else {
+            collapsedWorkspaces.insert(label)
+        }
+        UserDefaults.standard.set(Array(collapsedWorkspaces), forKey: "AgentHUD.collapsedWorkspaces")
     }
 
     private func emptyState(_ board: Board) -> some View {
