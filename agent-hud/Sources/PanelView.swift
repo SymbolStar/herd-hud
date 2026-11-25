@@ -117,11 +117,16 @@ struct PanelView: View {
 
     private var header: some View {
         HStack(spacing: compact ? 5 : 8) {
-            Text("AGENTS")
-                .font(.system(size: compact ? 8.5 : 10, weight: .bold))
-                .tracking(compact ? 0.6 : 1.6)
-                .foregroundStyle(Color.white.opacity(0.55))
-                .lineLimit(1)
+            // The wordmark yields to the counts: in the compact column the four
+            // status pills plus the two buttons leave no room for it.
+            if !compact {
+                Text("AGENTS")
+                    .font(.system(size: 10, weight: .bold))
+                    .tracking(1.6)
+                    .foregroundStyle(Color.white.opacity(0.55))
+                    .lineLimit(1)
+                    .fixedSize()
+            }
             Spacer(minLength: 2)
             countsInline
             layoutButton
@@ -156,7 +161,7 @@ struct PanelView: View {
                 .font(.system(size: 9, weight: .bold))
                 .foregroundStyle(Color.white.opacity(0.45))
             if let board {
-                ForEach(collapsedBadges(board.counts), id: \.label) { badge in
+                ForEach(Self.statusBadges(board.counts)) { badge in
                     countDisc(badge.value, color: badge.color)
                 }
                 if !board.herdrAvailable {
@@ -175,23 +180,31 @@ struct PanelView: View {
         .help(collapsedHelp)
     }
 
-    private struct CountBadge {
+    private struct CountBadge: Identifiable {
         let label: String
         let value: Int
         let color: Color
+        var id: String { label }
     }
 
-    /// Order: waiting for you, running, finished, idle. The running disc is
-    /// always shown (0 included) so the tab never reads as empty; the others
-    /// appear only when their count is non-zero. The idle disc uses a solid
-    /// white rather than the translucent row dot so its number stays legible.
-    private func collapsedBadges(_ counts: Counts) -> [CountBadge] {
-        [
-            CountBadge(label: "blocked", value: counts.blocked, color: HUDTheme.blocked),
-            CountBadge(label: "working", value: counts.working, color: HUDTheme.working),
-            CountBadge(label: "done", value: counts.done, color: HUDTheme.done),
-            CountBadge(label: "idle", value: counts.idle, color: Color.white.opacity(0.82)),
-        ].filter { $0.value > 0 || $0.label == "working" }
+    /// The counts to show, in `StatusSummary`'s order, with their colours.
+    private static func statusBadges(_ counts: Counts) -> [CountBadge] {
+        StatusSummary.visible(in: counts).map { status in
+            CountBadge(
+                label: status.rawValue,
+                value: status.value(in: counts),
+                color: color(for: status)
+            )
+        }
+    }
+
+    private static func color(for status: StatusCount) -> Color {
+        switch status {
+        case .blocked: return HUDTheme.blocked
+        case .working: return HUDTheme.working
+        case .done: return HUDTheme.done
+        case .idle: return Color.white.opacity(0.82)
+        }
     }
 
     private func countDisc(_ value: Int, color: Color) -> some View {
@@ -212,9 +225,9 @@ struct PanelView: View {
     @ViewBuilder
     private var countsInline: some View {
         if let board {
-            countPill(board.counts.working, color: HUDTheme.working)
-            if board.counts.blocked > 0 {
-                countPill(board.counts.blocked, color: HUDTheme.blocked)
+            // Same set the folded tab shows, so the header cannot drift from it.
+            ForEach(Self.statusBadges(board.counts)) { badge in
+                countPill(badge.value, color: badge.color)
             }
             if !board.herdrAvailable {
                 Image(systemName: "exclamationmark.triangle.fill")

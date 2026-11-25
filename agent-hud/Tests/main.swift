@@ -344,6 +344,42 @@ do {
     )
 }
 
+section("status summary")
+do {
+    var counts = Counts()
+    checkEqual(
+        StatusSummary.visible(in: counts).map(\.rawValue),
+        ["working"],
+        "an empty board still shows the running count (at zero)"
+    )
+
+    counts.working = 2
+    checkEqual(
+        StatusSummary.visible(in: counts).map(\.rawValue),
+        ["working"],
+        "a running count does not pull in the empty statuses"
+    )
+
+    counts.blocked = 1
+    counts.done = 3
+    counts.idle = 12
+    checkEqual(
+        StatusSummary.visible(in: counts).map(\.rawValue),
+        ["blocked", "working", "done", "idle"],
+        "all four appear, in blocked, working, done, idle order"
+    )
+
+    counts.blocked = 0
+    checkEqual(
+        StatusSummary.visible(in: counts).map(\.rawValue),
+        ["working", "done", "idle"],
+        "a cleared status drops out again"
+    )
+
+    checkEqual(StatusCount.idle.value(in: counts), 12, "each status reads its own count")
+    checkEqual(StatusCount.blocked.value(in: counts), 0, "a zeroed status reads zero")
+}
+
 // MARK: - Layout modes
 
 section("layout")
