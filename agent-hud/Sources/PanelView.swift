@@ -39,11 +39,14 @@ enum HUDTheme {
 
 struct PanelView: View {
     @ObservedObject var store: AgentStore
-    let width: CGFloat
+    /// Configured column width; a user-dragged size overrides it.
+    let configuredWidth: CGFloat
     @State private var showAll = false
     @State private var horizontalAll = false
 
     private var board: Board? { store.board }
+
+    private var width: CGFloat { store.sideSize?.width ?? configuredWidth }
 
     private var compact: Bool { width < 220 }
 
@@ -77,8 +80,7 @@ struct PanelView: View {
                     .frame(maxHeight: .infinity)
             } else if store.layoutMode == .vertical {
                 verticalBody
-                    .frame(width: width)
-                    .frame(maxHeight: .infinity, alignment: .top)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             } else {
                 horizontalBody
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)

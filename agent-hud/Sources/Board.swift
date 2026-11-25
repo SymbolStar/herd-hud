@@ -245,6 +245,9 @@ final class AgentStore: ObservableObject {
     @Published var layoutMode: HUDLayout
     /// The right-edge column can fold into a slim tab; the top strip ignores this.
     @Published private(set) var collapsed: Bool
+    /// User-dragged size of the unfolded side column; nil until the first resize,
+    /// so config.json keeps controlling the size until then.
+    @Published private(set) var sideSize: CGSize?
 
     let config: HUDConfig
     private let local = HerdrSocket()
@@ -265,6 +268,7 @@ final class AgentStore: ObservableObject {
     private var claudeActivityReadAt = Date.distantPast
     private static let activityKey = "AgentHUD.activity.v1"
     private static let collapsedKey = "AgentHUD.collapsed"
+    private static let sideSizeKey = "AgentHUD.sideSize.v1"
     private static let activityRetention: TimeInterval = 24 * 60 * 60
 
     init(config: HUDConfig = .load()) {
@@ -276,6 +280,10 @@ final class AgentStore: ObservableObject {
             self.layoutMode = config.layout
         }
         self.collapsed = UserDefaults.standard.bool(forKey: Self.collapsedKey)
+        if let raw = UserDefaults.standard.string(forKey: Self.sideSizeKey) {
+            let size = NSSizeFromString(raw)
+            if size.width > 0, size.height > 0 { self.sideSize = size }
+        }
         loadActivity()
     }
 
@@ -352,6 +360,19 @@ final class AgentStore: ObservableObject {
         collapsed = value
         UserDefaults.standard.set(value, forKey: Self.collapsedKey)
         HUDLog.write("collapsed: \(value)")
+    }
+
+    /// Remember a size the user dragged the side column to (nil = back to config).
+    func setSideSize(_ size: CGSize?) {
+        guard sideSize != size else { return }
+        sideSize = size
+        if let size {
+            UserDefaults.standard.set(NSStringFromSize(size), forKey: Self.sideSizeKey)
+            HUDLog.write("side size: \(Int(size.width))x\(Int(size.height))")
+        } else {
+            UserDefaults.standard.removeObject(forKey: Self.sideSizeKey)
+            HUDLog.write("side size: reset")
+        }
     }
 
     func start() {
