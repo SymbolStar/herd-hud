@@ -30,6 +30,7 @@ window.__ModuleLoader__.load({
       'filter.claude': 'Claude',
       'filter.opencode': 'OpenCode',
       'filter.codex': 'Codex',
+      'filter.pi': 'pi',
       'filter.local': '本机',
       'machine.offline': '离线',
       'machine.loading': '加载中',
@@ -51,6 +52,7 @@ window.__ModuleLoader__.load({
       'type.claude': 'Claude',
       'type.opencode': 'OpenCode',
       'type.codex': 'Codex',
+      'type.pi': 'pi',
       'kind.bg': '后台',
       'kind.interactive': '交互',
       'label.readOnly': '只读',
@@ -111,6 +113,7 @@ window.__ModuleLoader__.load({
       'filter.claude': 'Claude',
       'filter.opencode': 'OpenCode',
       'filter.codex': 'Codex',
+      'filter.pi': 'pi',
       'filter.local': 'Local',
       'machine.offline': 'offline',
       'machine.loading': 'loading',
@@ -132,6 +135,7 @@ window.__ModuleLoader__.load({
       'type.claude': 'Claude',
       'type.opencode': 'OpenCode',
       'type.codex': 'Codex',
+      'type.pi': 'pi',
       'kind.bg': 'bg',
       'kind.interactive': 'interactive',
       'label.readOnly': 'read-only',
@@ -228,6 +232,7 @@ window.__ModuleLoader__.load({
 .dca-badge[data-type='claude'] { color: var(--dsw-alias-brand-primary); border-color: var(--dsw-alias-brand-primary); }
 .dca-badge[data-type='opencode'] { color: var(--dsw-alias-state-success-primary); border-color: var(--dsw-alias-state-success-primary); }
 .dca-badge[data-type='codex'] { color: var(--dsw-alias-state-warn-primary); border-color: var(--dsw-alias-state-warn-primary); }
+.dca-badge[data-type='pi'] { color: var(--dsw-alias-state-info-primary, var(--dsw-alias-brand-primary)); border-color: var(--dsw-alias-state-info-primary, var(--dsw-alias-brand-primary)); }
 .dca-badge[data-muted='true'] { opacity: 0.7; }
 .dca-status { flex: none; font-size: 12px; color: var(--dsw-alias-label-secondary); }
 .dca-status[data-status='working'] { color: var(--dsw-alias-state-success-primary); }
@@ -400,7 +405,7 @@ window.__ModuleLoader__.load({
     }
 
     function TypeBadge(props) {
-      const labelKey = { claude: 'type.claude', opencode: 'type.opencode', codex: 'type.codex' }[props.type];
+      const labelKey = { claude: 'type.claude', opencode: 'type.opencode', codex: 'type.codex', pi: 'type.pi' }[props.type];
       return h('span', { className: 'dca-badge', 'data-type': props.type }, t(labelKey || 'type.claude'));
     }
 
@@ -851,6 +856,7 @@ window.__ModuleLoader__.load({
                   h(Chip, { label: t('filter.claude'), value: counts.claude || 0, active: typeFilter === 'claude', onClick: () => setTypeFilter('claude') }),
                   h(Chip, { label: t('filter.opencode'), value: counts.opencode || 0, active: typeFilter === 'opencode', onClick: () => setTypeFilter('opencode') }),
                   h(Chip, { label: t('filter.codex'), value: counts.codex || 0, active: typeFilter === 'codex', onClick: () => setTypeFilter('codex') }),
+                  h(Chip, { label: t('filter.pi'), value: counts.pi || 0, active: typeFilter === 'pi', onClick: () => setTypeFilter('pi') }),
                 ),
                 machineOptions.length > 0
                   ? h(

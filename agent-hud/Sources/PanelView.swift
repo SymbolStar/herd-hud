@@ -12,6 +12,7 @@ enum HUDTheme {
     static let claude = Color(red: 0.64, green: 0.56, blue: 0.99)
     static let opencode = Color(red: 0.36, green: 0.83, blue: 0.62)
     static let codex = Color(red: 1.00, green: 0.74, blue: 0.38)
+    static let pi = Color(red: 0.40, green: 0.72, blue: 1.00)
 
     static func status(_ value: String) -> Color {
         switch value {
@@ -28,6 +29,7 @@ enum HUDTheme {
         case "claude": return claude
         case "opencode": return opencode
         case "codex": return codex
+        case "pi": return pi
         default: return unknown
         }
     }
@@ -474,6 +476,7 @@ struct AgentRowView: View {
         case "claude": return "C"
         case "opencode": return "OC"
         case "codex": return "CX"
+        case "pi": return "π"
         default: return "?"
         }
     }
@@ -557,6 +560,7 @@ struct AgentChipView: View {
         case "claude": return "C"
         case "opencode": return "OC"
         case "codex": return "CX"
+        case "pi": return "π"
         default: return "?"
         }
     }
