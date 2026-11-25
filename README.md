@@ -71,6 +71,23 @@ Then refresh the DSH page: an **Agents** item appears in the sidebar. Remote
 machines are configured with the plugin's `machines` list / the
 `DSH_CLAUDE_AGENTS_MACHINES` env var (default: `symbol-150-jms`).
 
+## Versioning
+
+The project-wide version lives in the `VERSION` file at the repository root.
+`agent-hud/build.sh` stamps it into the app's `Info.plist`, build output, log,
+menu bar, and `--dump` JSON. The DSH plugin's `package.json` version is kept in
+sync by `scripts/release.sh`.
+
+To cut a release:
+
+```sh
+scripts/release.sh 0.3.0   # bump, validate CHANGELOG, build, commit, tag
+git push origin main --tags
+gh release create v0.3.0 --generate-notes
+```
+
+See [CHANGELOG.md](CHANGELOG.md) for the release history.
+
 ## Design notes
 
 - [dsh-claude-agents/DESIGN-send-message.md](dsh-claude-agents/DESIGN-send-message.md) —

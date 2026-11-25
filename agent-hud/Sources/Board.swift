@@ -60,6 +60,7 @@ struct Board: Codable {
     var herdrError: String?
     var generatedAt: Date
     var version: String?
+    var hudVersion: String?
 }
 
 struct RemoteState {
@@ -133,7 +134,8 @@ enum BoardBuilder {
             herdrAvailable: local != nil,
             herdrError: local == nil ? (localError ?? "Herdr 未运行") : nil,
             generatedAt: now,
-            version: local?.version
+            version: local?.version,
+            hudVersion: BuildInfo.summary
         )
     }
 

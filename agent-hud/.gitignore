@@ -1,0 +1,3 @@
+# Generated at build time
+Sources/BuildVersion.swift
+build/

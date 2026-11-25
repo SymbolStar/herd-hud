@@ -275,6 +275,10 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         super.init()
 
         menu.delegate = self
+        menu.addItem(NSMenuItem.separator())
+        let versionItem = NSMenuItem(title: "Agent HUD \(BuildInfo.summary)", action: nil, keyEquivalent: "")
+        versionItem.isEnabled = false
+        menu.addItem(versionItem)
         menu.addItem(withTitle: "显示 / 隐藏面板", action: #selector(togglePanel), keyEquivalent: "t")
 
         let verticalItem = NSMenuItem(title: "布局：右侧竖列", action: #selector(useVerticalLayout), keyEquivalent: "")
@@ -345,7 +349,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var lastBoardSignature = ""
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        HUDLog.write("Agent HUD launching")
+        HUDLog.write("Agent HUD \(BuildInfo.summary) launching")
         HUDConfig.writeExampleIfMissing()
         let config = HUDConfig.load()
         let store = AgentStore(config: config)
