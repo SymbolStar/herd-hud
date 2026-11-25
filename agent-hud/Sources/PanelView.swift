@@ -246,20 +246,29 @@ struct PanelView: View {
         }
     }
 
+    /// Label for agents that have no Herdr workspace; a fallback bucket.
+    private static let noWorkspaceLabel = "其他"
+
     /// Rows grouped by workspace label, preserving the within-group order from
-    /// the board (most recently active first). Agents without a workspace land
-    /// in a trailing "其他" group.
+    /// the board (most recently active first). Agents without a workspace are a
+    /// fallback bucket and always come last, however recent they are.
     private var groupedRows: [(workspace: String, rows: [AgentRow])] {
         var groups: [(key: String, rows: [AgentRow])] = []
         var index: [String: Int] = [:]
         for row in rows {
-            let key = row.workspace ?? "其他"
+            let key = row.workspace ?? Self.noWorkspaceLabel
             if let i = index[key] {
                 groups[i].rows.append(row)
             } else {
                 index[key] = groups.count
                 groups.append((key: key, rows: [row]))
             }
+        }
+        // Groups appear in activity order, so the fallback bucket can land
+        // anywhere; move it to the end where it belongs.
+        if let fallback = groups.firstIndex(where: { $0.key == Self.noWorkspaceLabel }),
+           fallback != groups.count - 1 {
+            groups.append(groups.remove(at: fallback))
         }
         return groups.map { (workspace: $0.key, rows: $0.rows) }
     }
