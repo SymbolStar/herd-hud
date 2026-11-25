@@ -249,11 +249,18 @@ struct PanelView: View {
     /// Label for agents that have no Herdr workspace; a fallback bucket.
     private static let noWorkspaceLabel = "其他"
 
-    /// Rows grouped by workspace label, preserving the within-group order from
+    /// One workspace's agents, in the order they appear on the board.
+    private struct WorkspaceGroup: Identifiable {
+        let workspace: String
+        var rows: [AgentRow]
+        var id: String { workspace }
+    }
+
+    /// Group rows by workspace label, preserving the within-group order from
     /// the board (most recently active first). Agents without a workspace are a
     /// fallback bucket and always come last, however recent they are.
-    private var groupedRows: [(workspace: String, rows: [AgentRow])] {
-        var groups: [(key: String, rows: [AgentRow])] = []
+    private static func groupByWorkspace(_ rows: [AgentRow]) -> [WorkspaceGroup] {
+        var groups: [WorkspaceGroup] = []
         var index: [String: Int] = [:]
         for row in rows {
             let key = row.workspace ?? Self.noWorkspaceLabel
@@ -261,17 +268,21 @@ struct PanelView: View {
                 groups[i].rows.append(row)
             } else {
                 index[key] = groups.count
-                groups.append((key: key, rows: [row]))
+                groups.append(WorkspaceGroup(workspace: key, rows: [row]))
             }
         }
         // Groups appear in activity order, so the fallback bucket can land
         // anywhere; move it to the end where it belongs.
-        if let fallback = groups.firstIndex(where: { $0.key == Self.noWorkspaceLabel }),
+        if let fallback = groups.firstIndex(where: { $0.workspace == Self.noWorkspaceLabel }),
            fallback != groups.count - 1 {
             groups.append(groups.remove(at: fallback))
         }
-        return groups.map { (workspace: $0.key, rows: $0.rows) }
+        return groups
     }
+
+    private var groupedRows: [WorkspaceGroup] { Self.groupByWorkspace(rows) }
+
+    private var horizontalGroups: [WorkspaceGroup] { Self.groupByWorkspace(horizontalRows) }
 
     @ViewBuilder
     private var verticalContent: some View {
@@ -281,7 +292,7 @@ struct PanelView: View {
             } else {
                 ScrollView(.vertical, showsIndicators: false) {
                     LazyVStack(spacing: 0) {
-                        ForEach(groupedRows, id: \.workspace) { group in
+                        ForEach(groupedRows) { group in
                             let isCollapsed = collapsedWorkspaces.contains(group.workspace)
                             workspaceSectionHeader(group.workspace, count: group.rows.count, collapsed: isCollapsed)
                             if !isCollapsed {
@@ -472,8 +483,18 @@ struct PanelView: View {
                                 .foregroundStyle(Color.white.opacity(0.45))
                                 .padding(.horizontal, 4)
                         } else {
-                            ForEach(horizontalRows) { row in
-                                AgentChipView(row: row) { store.focus(row) }
+                            ForEach(Array(horizontalGroups.enumerated()), id: \.element.id) { index, group in
+                                if index > 0 { horizontalGroupSeparator }
+                                Text(group.workspace)
+                                    .font(.system(size: 9, weight: .semibold))
+                                    .foregroundStyle(Color.white.opacity(0.40))
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                                    .frame(maxWidth: 90, alignment: .leading)
+                                    .help(group.workspace)
+                                ForEach(group.rows) { row in
+                                    AgentChipView(row: row) { store.focus(row) }
+                                }
                             }
                         }
                     } else {
@@ -503,6 +524,14 @@ struct PanelView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
         .frame(maxHeight: .infinity)
+    }
+
+    /// Thin rule between workspace groups in the top strip.
+    private var horizontalGroupSeparator: some View {
+        Rectangle()
+            .fill(Color.white.opacity(0.12))
+            .frame(width: 1, height: 14)
+            .padding(.horizontal, 2)
     }
 
     private var horizontalFilterButton: some View {
