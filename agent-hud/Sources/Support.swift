@@ -150,7 +150,10 @@ enum HUDLog {
             let url = HUDPaths.logFile
             if let handle = try? FileHandle(forWritingTo: url) {
                 defer { try? handle.close() }
-                try? handle.seekToEnd()
+                // Appending: without the seek the write lands at offset 0 and
+                // overwrites the log. `seekToEnd` is @discardableResult, but
+                // `try?` wraps the offset in an Optional, so discard it here.
+                _ = try? handle.seekToEnd()
                 try? handle.write(contentsOf: data)
             } else {
                 try? data.write(to: url)
