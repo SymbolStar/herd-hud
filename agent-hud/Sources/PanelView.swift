@@ -246,43 +246,9 @@ struct PanelView: View {
         }
     }
 
-    /// Label for agents that have no Herdr workspace; a fallback bucket.
-    private static let noWorkspaceLabel = "其他"
+    private var groupedRows: [WorkspaceGroup] { WorkspaceGrouping.groups(from: rows) }
 
-    /// One workspace's agents, in the order they appear on the board.
-    private struct WorkspaceGroup: Identifiable {
-        let workspace: String
-        var rows: [AgentRow]
-        var id: String { workspace }
-    }
-
-    /// Group rows by workspace label, preserving the within-group order from
-    /// the board (most recently active first). Agents without a workspace are a
-    /// fallback bucket and always come last, however recent they are.
-    private static func groupByWorkspace(_ rows: [AgentRow]) -> [WorkspaceGroup] {
-        var groups: [WorkspaceGroup] = []
-        var index: [String: Int] = [:]
-        for row in rows {
-            let key = row.workspace ?? Self.noWorkspaceLabel
-            if let i = index[key] {
-                groups[i].rows.append(row)
-            } else {
-                index[key] = groups.count
-                groups.append(WorkspaceGroup(workspace: key, rows: [row]))
-            }
-        }
-        // Groups appear in activity order, so the fallback bucket can land
-        // anywhere; move it to the end where it belongs.
-        if let fallback = groups.firstIndex(where: { $0.workspace == Self.noWorkspaceLabel }),
-           fallback != groups.count - 1 {
-            groups.append(groups.remove(at: fallback))
-        }
-        return groups
-    }
-
-    private var groupedRows: [WorkspaceGroup] { Self.groupByWorkspace(rows) }
-
-    private var horizontalGroups: [WorkspaceGroup] { Self.groupByWorkspace(horizontalRows) }
+    private var horizontalGroups: [WorkspaceGroup] { WorkspaceGrouping.groups(from: horizontalRows) }
 
     @ViewBuilder
     private var verticalContent: some View {

@@ -56,6 +56,9 @@ jobs:
       - name: Build
         run: ./agent-hud/build.sh
 
+      - name: Unit tests
+        run: ./agent-hud/test.sh
+
       - name: Verify version stamping
         run: |
           APP="agent-hud/build/Agent HUD.app"
