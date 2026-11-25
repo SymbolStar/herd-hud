@@ -5,9 +5,14 @@ on:
   push:
     branches: [main]
 
+# Least privilege: CI only reads the repository.
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # Supersede an older run of the same PR; keep every main build.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   dsh-plugin:
@@ -25,10 +30,7 @@ jobs:
 
       - name: Syntax check
         run: |
-          node --check index.js
-          node --check client.js
-          node --check herdr.js
-          node --check machines.js
+          for f in *.js; do node --check "$f"; done
 
       - name: Tests
         run: |
@@ -40,6 +42,10 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # build.sh stamps the commit count as CFBundleVersion, which needs
+          # the full history; the default shallow clone would always give 1.
+          fetch-depth: 0
 
       - name: Show toolchain
         run: |
@@ -61,10 +67,11 @@ jobs:
           echo "VERSION=$EXPECTED  Info.plist=$ACTUAL"
           [ "$EXPECTED" = "$ACTUAL" ]
 
-          # Build number is the commit count, so it must be a positive integer.
+          # Build number is the commit count; with fetch-depth: 0 it must match.
           BUILD="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Contents/Info.plist")"
-          echo "CFBundleVersion=$BUILD"
-          [ "$BUILD" -ge 1 ]
+          COMMITS="$(git rev-list --count HEAD)"
+          echo "CFBundleVersion=$BUILD  commits=$COMMITS"
+          [ "$BUILD" = "$COMMITS" ]
 
       - name: Check the binary reports its version
         run: |
@@ -73,4 +80,6 @@ jobs:
           # the generated BuildVersion.swift, not from the running server.
           OUT="$("$APP/Contents/MacOS/AgentHUD" --dump --no-remote)"
           echo "$OUT" | head -5
-          echo "$OUT" | grep -q '"hudVersion"'
+          # The value must be the VERSION file's, not the "dev" fallback.
+          EXPECTED="$(head -1 VERSION | tr -d '[:space:]')"
+          echo "$OUT" | grep -qF "\"hudVersion\" : \"$EXPECTED ("

@@ -94,8 +94,8 @@ See [CHANGELOG.md](CHANGELOG.md) for the release history.
 
 | Job | Runner | What it checks |
 |---|---|---|
-| `dsh-plugin` | ubuntu-latest | `node --check` on every plugin module, then `test/board.test.mjs` and `test/machines.test.mjs` |
-| `agent-hud` | macos-latest | `agent-hud/build.sh`, that `Info.plist` carries the `VERSION` value, and that the built binary's `--dump` reports `hudVersion` |
+| `dsh-plugin` | ubuntu-latest | `node --check` on every `*.js` module, then `test/board.test.mjs` and `test/machines.test.mjs` |
+| `agent-hud` | macos-latest | `agent-hud/build.sh`; `Info.plist` `CFBundleShortVersionString` equals `VERSION`, `CFBundleVersion` equals the commit count; the built binary's `--dump` reports the `VERSION` value as `hudVersion` |
 
 The macOS job needs no Herdr: `--dump --no-remote` prints a board with no agents when the socket is missing.
 
