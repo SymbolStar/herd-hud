@@ -54,9 +54,11 @@ Compiles the real sources (minus `main.swift`) together with `Tests/main.swift`
 into a throwaway binary and runs the assertions. No XCTest and no SwiftPM, so
 `swiftc` stays the only requirement; CI runs it on every pull request.
 
-Covered: pi session-name trimming, name disambiguation, counts, row ordering
-(activity, then Herdr sequence, then status rank, then local before remote,
-then kind, then name), workspace label resolution, workspace grouping
+Covered: pi session-name trimming, name disambiguation, counts, which status
+counts the header and tab show (the StatusSummary rule: running always, the
+rest when non-zero), row ordering (activity, then Herdr sequence, then status
+rank, then local before remote, then kind, then name), workspace label
+resolution, workspace grouping
 (including the "其他" bucket staying last), and remote-machine row ids.
 
 Each ordering rule has an assertion that fails when that rule alone is removed,

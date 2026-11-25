@@ -344,6 +344,51 @@ do {
     )
 }
 
+section("status summary")
+do {
+    var counts = Counts()
+    checkEqual(
+        StatusSummary.visible(in: counts).map(\.rawValue),
+        ["working"],
+        "an empty board still shows the running count (at zero)"
+    )
+
+    counts.working = 2
+    checkEqual(
+        StatusSummary.visible(in: counts).map(\.rawValue),
+        ["working"],
+        "a running count does not pull in the empty statuses"
+    )
+
+    counts.blocked = 1
+    counts.done = 3
+    counts.idle = 12
+    checkEqual(
+        StatusSummary.visible(in: counts).map(\.rawValue),
+        ["blocked", "working", "done", "idle"],
+        "all four appear, in blocked, working, done, idle order"
+    )
+
+    counts.blocked = 0
+    checkEqual(
+        StatusSummary.visible(in: counts).map(\.rawValue),
+        ["working", "done", "idle"],
+        "a cleared status drops out again"
+    )
+
+    // Distinct values, so swapping any two mappings fails.
+    var distinct = Counts()
+    distinct.blocked = 1
+    distinct.working = 2
+    distinct.done = 3
+    distinct.idle = 4
+    for (status, expected) in [(StatusCount.blocked, 1), (.working, 2), (.done, 3), (.idle, 4)] {
+        checkEqual(status.value(in: distinct), expected, "\(status.rawValue) reads its own count")
+    }
+
+    checkEqual(StatusCount.blocked.value(in: counts), 0, "a zeroed status reads zero")
+}
+
 // MARK: - Layout modes
 
 section("layout")
