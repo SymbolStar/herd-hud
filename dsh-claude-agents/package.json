@@ -1,6 +1,6 @@
 {
   "name": "@local/dsh-claude-agents",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "DSH board for every local and remote Herdr-managed agent (Claude / OpenCode / Codex) with live status, output, and message sending.",
   "type": "module",
