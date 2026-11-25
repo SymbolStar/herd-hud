@@ -4,6 +4,15 @@ All notable changes to Herd HUD are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and versions use [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- The "其他" group for agents without a Herdr workspace is now always listed
+  last. It previously appeared wherever its most recently active agent fell in
+  the activity order, which contradicted the code's own comment on the
+  grouping function. (#7)
+
 ## [0.3.0] — 2026-11-25
 
 ### Added
