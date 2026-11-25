@@ -10,8 +10,9 @@ and versions use [Semantic Versioning](https://semver.org/).
 
 - **Agents grouped by Herdr workspace** — the side column now lists agents under
   workspace section headers (label and count), matching the Herdr TUI's
-  workspace structure. Agents without a workspace land in a trailing "其他"
-  group. Within a group the most-recent-activity order is unchanged. (#3)
+  workspace structure. Groups appear in most-recent-activity order, and agents
+  without a workspace are collected in an "其他" group. Within a group the
+  most-recent-activity order is unchanged. (#3)
 - **Collapsible workspace sections** — click a workspace header to fold or
   unfold its agents. A chevron (▸ folded, ▾ unfolded) shows the state, and the
   folded set is remembered across restarts (`AgentHUD.collapsedWorkspaces`). (#3)
@@ -19,10 +20,13 @@ and versions use [Semantic Versioning](https://semver.org/).
   request and on pushes to `main`: the DSH plugin's syntax and both test files
   on ubuntu, and `agent-hud/build.sh` plus version-stamping assertions on
   macOS. (#4)
+- `--dump` JSON rows carry the agent's `workspace` label. (#3)
 
 ### Changed
 
-- `--dump` JSON rows carry the agent's `workspace` label.
+- `dsh-claude-agents/package.json` reuses `0.3.0`, a version it also carried at
+  `v0.1.0`. The package is private, so the only effect is that an old install
+  reports the same version string as this release.
 
 ## [0.2.0] — 2026-11-25
 
